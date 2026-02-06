@@ -56,7 +56,8 @@ void Elasticity2D::compute_element(Index elem_id, const Mesh& mesh,
     DenseMatrix DB = D_ * B;  // 3x6
     DenseMatrix Bt = B.transpose();  // 6x3
     
-    Ke = Bt * DB * area;  // 6x6
+    DenseMatrix temp = Bt * DB;  // 6x6
+    Ke = temp * area;  // 6x6
     
     // 载荷向量 (暂不考虑体力)
     for (std::size_t i = 0; i < Fe.size(); ++i) {

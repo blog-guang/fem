@@ -14,3 +14,7 @@ target_include_directories(elasticity_2d PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_executable(elasticity_simple elasticity_simple.cpp)
 target_link_libraries(elasticity_simple PRIVATE fem)
 target_include_directories(elasticity_simple PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+add_executable(elasticity_debug elasticity_debug.cpp)
+target_link_libraries(elasticity_debug PRIVATE fem)
+target_include_directories(elasticity_debug PRIVATE ${CMAKE_SOURCE_DIR}/src)
