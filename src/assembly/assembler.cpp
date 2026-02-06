@@ -160,16 +160,16 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
     // 转换为 CSR 格式以便修改
     SparseMatrixCSR K_csr = coo_to_csr(K_coo_);
 
-    // 对每个边界条件
-    for (const auto& bc : bcs) {
-        // 获取边界节点
-        std::vector<bool> is_bc_node(n_dofs_, false);
+    // 收集所有需要约束的 DOF 及其值
+    std::vector<Real> bc_values(n_dofs_, 0.0);
+    std::vector<bool> is_bc_dof(n_dofs_, false);
 
+    for (const auto& bc : bcs) {
         for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
             const Mesh& mesh = model_.mesh(mesh_id);
 
             if (!mesh.has_boundary(bc.boundary_name)) {
-                continue;  // 该网格没有此边界
+                continue;
             }
 
             const auto& boundary_nodes = mesh.boundary(bc.boundary_name);
@@ -177,32 +177,34 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
             for (Index node_id : boundary_nodes) {
                 Index dof_id = node_id * dofs_per_node_ + bc.dof;
                 if (dof_id < n_dofs_) {
-                    is_bc_node[dof_id] = true;
+                    is_bc_dof[dof_id] = true;
+                    bc_values[dof_id] = bc.value;
                 }
-            }
-        }
-
-        // 应用边界条件: K(ii)=1, K(i,j≠i)=0, F(i)=value
-        for (Index i = 0; i < n_dofs_; ++i) {
-            if (is_bc_node[i]) {
-                Index row_start = K_csr.row_ptr()[i];
-                Index row_end = K_csr.row_ptr()[i + 1];
-
-                for (Index k = row_start; k < row_end; ++k) {
-                    Index j = K_csr.col_indices()[k];
-                    if (j == i) {
-                        K_csr.values()[k] = 1.0;
-                    } else {
-                        K_csr.values()[k] = 0.0;
-                    }
-                }
-
-                F_[i] = bc.value;
             }
         }
     }
 
-    // 转换回 COO 格式 (保持接口一致性)
+    // 统一应用边界条件 (简化方法: 主对角线法)
+    // K(ii) = 1, K(i,j≠i) = 0, F(i) = value
+    for (Index i = 0; i < n_dofs_; ++i) {
+        if (is_bc_dof[i]) {
+            Index row_start = K_csr.row_ptr()[i];
+            Index row_end = K_csr.row_ptr()[i + 1];
+
+            for (Index k = row_start; k < row_end; ++k) {
+                Index j = K_csr.col_indices()[k];
+                if (j == i) {
+                    K_csr.values()[k] = 1.0;
+                } else {
+                    K_csr.values()[k] = 0.0;
+                }
+            }
+
+            F_[i] = bc_values[i];
+        }
+    }
+
+    // 转换回 COO 格式
     K_coo_ = csr_to_coo(K_csr);
 
     FEM_INFO("Applied " + std::to_string(bcs.size()) + " Dirichlet BCs");

@@ -72,13 +72,15 @@ int main() {
     
     std::vector<DirichletBC> bcs;
     
-    // 左边界固定: u_x = 0, u_y = 0
+    // 左边界固定: u_x = 0, u_y = 0 (防止刚体平移)
     bcs.push_back({"left", 0, 0.0});   // DOF 0: u_x
     bcs.push_back({"left", 1, 0.0});   // DOF 1: u_y
     
-    // 右边界拉伸: 仅 u_x = 0.01
+    // 右边界拉伸: u_x = 0.01
     bcs.push_back({"right", 0, 0.01}); // DOF 0: u_x
-    // u_y 自由
+    
+    // 底部 y 方向固定（防止刚体旋转）
+    bcs.push_back({"bottom", 1, 0.0}); // DOF 1: u_y
     
     assembler.apply_dirichlet(bcs);
     
