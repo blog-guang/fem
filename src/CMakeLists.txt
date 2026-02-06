@@ -9,6 +9,7 @@ add_library(fem STATIC
     mesh/material.cpp
     mesh/mesh.cpp
     mesh/model.cpp
+    mesh/mesh_generator.cpp
     # Assembly (保留 sparse_matrix 供 solver 使用)
     assembly/sparse_matrix.cpp
     # Solver
