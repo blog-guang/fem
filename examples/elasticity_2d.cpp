@@ -18,7 +18,6 @@
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
-#include "assembly/sparse_matrix.h"
 #include "physics/elasticity_v2.h"
 #include "solver/cg.h"
 #include "core/timer.h"
@@ -88,18 +87,11 @@ int main() {
     // ── 5. 求解 ──
     timer.start();
     
-    SparseMatrixCSR K_new = assembler.matrix();
-    const Vector& F_new = assembler.rhs();
+    SparseMatrixCSR K = assembler.matrix();
+    const Vector& F = assembler.rhs();
     
-    // 转换到旧格式 (临时)
-    CSRMatrix K;
-    K.rows = K_new.rows();
-    K.row_ptr = K_new.row_ptr();
-    K.col_idx = K_new.col_indices();
-    K.values = K_new.values();
-    
-    std::vector<Real> F_std = F_new.raw();
-    std::vector<Real> u_std(F_new.size(), 0.0);
+    std::vector<Real> F_std = F.raw();
+    std::vector<Real> u_std(F.size(), 0.0);
     
     CGSolver solver;
     solver.set_tol(1e-8);

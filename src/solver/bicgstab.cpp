@@ -4,29 +4,26 @@
 
 namespace fem {
 
-// 兼容旧代码
-using Vector = std::vector<Real>;
-
-static Real dot(const Vector& a, const Vector& b) {
+static Real dot(const std::vector<Real>& a, const std::vector<Real>& b) {
     Real s = 0.0;
     for (std::size_t i = 0; i < a.size(); ++i) s += a[i] * b[i];
     return s;
 }
 
-SolveResult BiCGSTABSolver::solve(const CSRMatrix& K,
+SolveResult BiCGSTABSolver::solve(const SparseMatrixCSR& K,
                                    const std::vector<Real>& F,
                                    std::vector<Real>& x)
 {
     std::size_t n = F.size();
     x.assign(n, 0.0);
 
-    Vector r     = F;       // r = b - Ax, x0=0 → r=b
-    Vector r_hat = r;       // 任意, 常取 r0
+    std::vector<Real> r     = F;       // r = b - Ax, x0=0 → r=b
+    std::vector<Real> r_hat = r;       // 任意, 常取 r0
     Real   rho   = 1.0;
     Real   alpha = 1.0;
     Real   omega = 1.0;
 
-    Vector v(n, 0.0), p(n, 0.0), s(n), t(n);
+    std::vector<Real> v(n, 0.0), p(n, 0.0), s(n), t(n);
 
     for (std::size_t iter = 0; iter < max_iter_; ++iter) {
         Real rho_new = dot(r_hat, r);

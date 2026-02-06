@@ -15,7 +15,6 @@
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
-#include "assembly/sparse_matrix.h"
 #include "solver/cg.h"
 #include "core/timer.h"
 #include "core/logger.h"
@@ -128,20 +127,13 @@ int main() {
     
     // ── 4. 获取系统矩阵和向量 ──
     timer.start();
-    SparseMatrixCSR K_new = assembler.matrix();
-    const Vector& F_new = assembler.rhs();
+    SparseMatrixCSR K = assembler.matrix();
+    const Vector& F = assembler.rhs();
     
-    // 转换到旧格式供求解器使用 (临时)
-    CSRMatrix K;
-    K.rows = K_new.rows();
-    K.row_ptr = K_new.row_ptr();
-    K.col_idx = K_new.col_indices();
-    K.values = K_new.values();
+    std::vector<Real> F_std = F.raw();
+    std::vector<Real> u_std(F.size(), 0.0);
     
-    std::vector<Real> F_std = F_new.raw();
-    std::vector<Real> u_std(F_new.size(), 0.0);
-    
-    FEM_INFO("Format conversion in: " + std::to_string(timer.elapsed_s()) + "s");
+    FEM_INFO("System retrieved in: " + std::to_string(timer.elapsed_s()) + "s");
     
     // ── 5. 求解线性系统 Ku = F ──
     timer.start();

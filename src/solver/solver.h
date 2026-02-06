@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/types.h"
-#include "assembly/sparse_matrix.h"
+#include "math/sparse_matrix.h"
 #include <memory>
 
 namespace fem {
@@ -19,7 +19,7 @@ class LinearSolver {
 public:
     virtual ~LinearSolver() = default;
 
-    virtual SolveResult solve(const CSRMatrix& K,
+    virtual SolveResult solve(const SparseMatrixCSR& K,
                               const std::vector<Real>& F,
                               std::vector<Real>& x) = 0;
 

@@ -4,16 +4,13 @@
 
 namespace fem {
 
-// 兼容旧代码
-using Vector = std::vector<Real>;
-
-static Real dot(const Vector& a, const Vector& b) {
+static Real dot(const std::vector<Real>& a, const std::vector<Real>& b) {
     Real s = 0.0;
     for (std::size_t i = 0; i < a.size(); ++i) s += a[i] * b[i];
     return s;
 }
 
-SolveResult CGSolver::solve(const CSRMatrix& K,
+SolveResult CGSolver::solve(const SparseMatrixCSR& K,
                              const std::vector<Real>& F,
                              std::vector<Real>& x)
 {
@@ -21,11 +18,11 @@ SolveResult CGSolver::solve(const CSRMatrix& K,
     x.assign(n, 0.0);
 
     // r = F - K*x = F (x0=0)
-    Vector r = F;
-    Vector p = r;
+    std::vector<Real> r = F;
+    std::vector<Real> p = r;
     Real   rr = dot(r, r);
 
-    Vector Ap(n);
+    std::vector<Real> Ap(n);
 
     for (std::size_t iter = 0; iter < max_iter_; ++iter) {
         K.matvec(p.data(), Ap.data());

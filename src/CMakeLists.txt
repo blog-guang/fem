@@ -15,7 +15,6 @@ add_library(fem STATIC
     mesh/model.cpp
     mesh/mesh_generator.cpp
     # Assembly
-    assembly/sparse_matrix.cpp
     assembly/assembler.cpp
     # Physics
     physics/heat.cpp

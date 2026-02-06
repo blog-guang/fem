@@ -26,6 +26,17 @@ void SparseMatrixCOO::print(const std::string& name) const {
 }
 
 // ═══ SparseMatrixCSR ═══
+// ── std::vector 版本 (兼容旧代码) ──
+void SparseMatrixCSR::matvec(const Real* x, Real* y) const {
+    for (std::size_t i = 0; i < rows_; ++i) {
+        Real sum = 0.0;
+        for (Index k = row_ptr_[i]; k < row_ptr_[i + 1]; ++k) {
+            sum += values_[k] * x[col_indices_[k]];
+        }
+        y[i] = sum;
+    }
+}
+
 Vector SparseMatrixCSR::matvec(const Vector& x) const {
     if (cols_ != x.size()) {
         throw std::runtime_error("Matrix-vector size mismatch in CSR matvec");

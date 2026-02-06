@@ -1,15 +1,13 @@
 #include <gtest/gtest.h>
 #include "solver/solver.h"
-#include "assembly/sparse_matrix.h"
+#include "math/sparse_matrix.h"
 
 using namespace fem;
-using Vector = std::vector<Real>;  // 兼容旧代码
 
 // ── 辅助: 构造 SPD 三对角矩阵 ──
 // [[2,-1,0],[-1,2,-1],[0,-1,2]]
-static CSRMatrix make_tridiag_3() {
-    COOMatrix coo;
-    coo.rows = 3; coo.cols = 3;
+static SparseMatrixCSR make_tridiag_3() {
+    SparseMatrixCOO coo(3, 3);
     coo.add(0,0, 2); coo.add(0,1,-1);
     coo.add(1,0,-1); coo.add(1,1, 2); coo.add(1,2,-1);
     coo.add(2,1,-1); coo.add(2,2, 2);
@@ -19,13 +17,13 @@ static CSRMatrix make_tridiag_3() {
 // ── CG ──
 TEST(CGTest, Solve_2x2) {
     // [[2,-1],[-1,2]] * x = [1,1] → x = [1,1]
-    COOMatrix coo;
-    coo.rows = 2; coo.cols = 2;
+    SparseMatrixCOO coo(0, 0);
+    coo = SparseMatrixCOO(2, 2);
     coo.add(0,0, 2); coo.add(0,1,-1);
     coo.add(1,0,-1); coo.add(1,1, 2);
     auto K = coo_to_csr(coo);
-    Vector F = {1.0, 1.0};
-    Vector x;
+    std::vector<Real> F = {1.0, 1.0};
+    std::vector<Real> x;
 
     auto solver = create_solver(SolverType::CG);
     auto res = solver->solve(K, F, x);
@@ -37,8 +35,8 @@ TEST(CGTest, Solve_2x2) {
 
 TEST(CGTest, Solve_3x3_Tridiag) {
     auto K = make_tridiag_3();
-    Vector F = {1.0, 0.0, 1.0};
-    Vector x;
+    std::vector<Real> F = {1.0, 0.0, 1.0};
+    std::vector<Real> x;
 
     auto solver = create_solver(SolverType::CG);
     auto res = solver->solve(K, F, x);
@@ -52,14 +50,13 @@ TEST(CGTest, Solve_3x3_Tridiag) {
 
 TEST(CGTest, Solve_Identity) {
     // I * x = [3, 7] → x = [3, 7]
-    CSRMatrix I;
-    I.rows    = 2;
-    I.row_ptr = {0, 1, 2};
-    I.col_idx = {0, 1};
-    I.values  = {1.0, 1.0};
+    SparseMatrixCOO coo_I(2, 2);
+    coo_I.add(0, 0, 1.0);
+    coo_I.add(1, 1, 1.0);
+    SparseMatrixCSR I = coo_to_csr(coo_I);
 
-    Vector F = {3.0, 7.0};
-    Vector x;
+    std::vector<Real> F = {3.0, 7.0};
+    std::vector<Real> x;
 
     auto solver = create_solver(SolverType::CG);
     auto res = solver->solve(I, F, x);
@@ -71,13 +68,13 @@ TEST(CGTest, Solve_Identity) {
 
 // ── BiCGSTAB ──
 TEST(BiCGSTABTest, Solve_2x2) {
-    COOMatrix coo;
-    coo.rows = 2; coo.cols = 2;
+    SparseMatrixCOO coo(0, 0);
+    coo = SparseMatrixCOO(2, 2);
     coo.add(0,0, 2); coo.add(0,1,-1);
     coo.add(1,0,-1); coo.add(1,1, 2);
     auto K = coo_to_csr(coo);
-    Vector F = {1.0, 1.0};
-    Vector x;
+    std::vector<Real> F = {1.0, 1.0};
+    std::vector<Real> x;
 
     auto solver = create_solver(SolverType::BiCGSTAB);
     auto res = solver->solve(K, F, x);
@@ -90,14 +87,14 @@ TEST(BiCGSTABTest, Solve_2x2) {
 TEST(BiCGSTABTest, Solve_3x3_NonSymmetric) {
     // 非对称矩阵: [[3,1,0],[0,2,1],[1,0,3]]
     // b = [4, 3, 4] → x = [1, 1, 1]
-    COOMatrix coo;
-    coo.rows = 3; coo.cols = 3;
+    SparseMatrixCOO coo(0, 0);
+    coo = SparseMatrixCOO(3, 3);
     coo.add(0,0,3); coo.add(0,1,1);
     coo.add(1,1,2); coo.add(1,2,1);
     coo.add(2,0,1); coo.add(2,2,3);
     auto K = coo_to_csr(coo);
-    Vector F = {4.0, 3.0, 4.0};
-    Vector x;
+    std::vector<Real> F = {4.0, 3.0, 4.0};
+    std::vector<Real> x;
 
     auto solver = create_solver(SolverType::BiCGSTAB);
     auto res = solver->solve(K, F, x);

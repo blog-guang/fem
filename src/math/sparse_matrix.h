@@ -108,6 +108,9 @@ public:
     Vector matvec(const Vector& x) const;
     Vector operator*(const Vector& x) const { return matvec(x); }
     
+    // std::vector 版本 (兼容旧 solver 代码)
+    void matvec(const Real* x, Real* y) const;
+    
     // ═══ 工具 ═══
     void print(const std::string& name = "") const;
     
