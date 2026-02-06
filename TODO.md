@@ -82,19 +82,23 @@
 - ✓ 边界识别 (2D/3D)
 - ✓ 测试验证 (38/38 通过)
 
-**✅ 已完成 (Phase 2.1-2.1.5):**
+**✅ 已完成 (Phase 2.1-2.2):**
 - ✓ `mesh_generator` 实现 (4种网格类型)
 - ✓ 数学库实现 (Vector, DenseMatrix, SparseMatrix)
 - ✓ 完整示例验证 (poisson_2d_demo)
+- ✓ **Assembler 实现** (多自由度场支持)
+- ✓ Dirichlet 边界条件
+- ✓ 62个测试全部通过
 
-**立即执行 (Phase 2.2):**
-1. 实现 Assembler (支持新 Mesh 架构)
-2. BoundaryCondition (Dirichlet/Neumann)
-3. 重构 physics 模块 (heat, elasticity)
+**立即执行 (Phase 2.3):**
+1. 重构 physics/heat 使用新 Assembler
+2. 重构 physics/elasticity 使用新 Assembler
+3. IO 系统 (VTK 输出)
 
-**短期 (Phase 2.3):**
-- IO 系统 (VTK 输出)
-- 完整示例
+**短期 (Phase 2.4):**
+- Neumann 边界条件
+- 更多物理模块 (thermal stress, fluid)
+- 完整工程示例
 
 **中期 (Phase 2.4-2.5):**
 - IO 系统 (VTK)
