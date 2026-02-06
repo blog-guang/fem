@@ -184,10 +184,34 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
         }
     }
 
-    // 统一应用边界条件 (简化方法: 主对角线法)
-    // K(ii) = 1, K(i,j≠i) = 0, F(i) = value
+    // 完全消去法 (保持系统一致性)
+    // 1. 先修正右端项: F(j) -= K(j,i) * bc_value (对所有自由DOF j)
     for (Index i = 0; i < n_dofs_; ++i) {
         if (is_bc_dof[i]) {
+            Real bc_val = bc_values[i];
+            
+            // 遍历所有行，找到列i的元素
+            for (Index row = 0; row < n_dofs_; ++row) {
+                if (is_bc_dof[row]) continue;  // 跳过约束DOF
+                
+                Index row_start = K_csr.row_ptr()[row];
+                Index row_end = K_csr.row_ptr()[row + 1];
+                
+                for (Index k = row_start; k < row_end; ++k) {
+                    if (K_csr.col_indices()[k] == i) {
+                        // F(row) -= K(row, i) * bc_value
+                        F_[row] -= K_csr.values()[k] * bc_val;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. 修改约束DOF的行和列
+    for (Index i = 0; i < n_dofs_; ++i) {
+        if (is_bc_dof[i]) {
+            // 修改第 i 行: K(i,i)=1, K(i,j≠i)=0
             Index row_start = K_csr.row_ptr()[i];
             Index row_end = K_csr.row_ptr()[i + 1];
 
@@ -200,6 +224,22 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
                 }
             }
 
+            // 修改第 i 列: K(j,i)=0 (对所有 j≠i)
+            for (Index row = 0; row < n_dofs_; ++row) {
+                if (row == i) continue;
+                
+                Index start = K_csr.row_ptr()[row];
+                Index end = K_csr.row_ptr()[row + 1];
+                
+                for (Index k = start; k < end; ++k) {
+                    if (K_csr.col_indices()[k] == i) {
+                        K_csr.values()[k] = 0.0;
+                        break;
+                    }
+                }
+            }
+
+            // 设置右端项
             F_[i] = bc_values[i];
         }
     }
