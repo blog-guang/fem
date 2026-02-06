@@ -22,10 +22,19 @@ constexpr std::size_t MAX_NODES = 8;
 
 // ── 枚举 ──
 enum class ElementType : uint8_t {
+    // Legacy (Phase 1/2 compatibility)
     Triangle2D,      // 三角形 (3 节点)
     Quad2D,          // 四边形 (4 节点)
     Tetrahedron3D,   // 四面体 (4 节点)
-    Hexahedron3D     // 六面体 (8 节点)
+    Hexahedron3D,    // 六面体 (8 节点)
+    
+    // Mesh V2 (新架构)
+    Node,            // 0D
+    Edge2, Edge3,    // 1D
+    Tri3, Tri6,      // 2D 三角形
+    Quad4, Quad8,    // 2D 四边形
+    Tet4, Tet10,     // 3D 四面体
+    Brick8, Brick20  // 3D 六面体
 };
 
 enum class FieldType : uint8_t {

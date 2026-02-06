@@ -16,6 +16,7 @@ add_executable(fem_tests
     test_solver.cpp
     test_io.cpp
     test_physics.cpp
+    test_mesh_v2.cpp
 )
 
 target_link_libraries(fem_tests PRIVATE fem gtest_main)

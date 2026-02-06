@@ -25,6 +25,10 @@ add_library(fem STATIC
     # Physics
     physics/heat_conduction.cpp
     physics/elasticity.cpp
+    # Mesh V2 (新架构)
+    mesh_v2/material.cpp
+    mesh_v2/mesh.cpp
+    mesh_v2/model.cpp
 )
 
 target_include_directories(fem PUBLIC
