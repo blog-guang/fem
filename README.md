@@ -1,8 +1,9 @@
 # FEM - 有限元多物理场计算库
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-44%2F44-success)]()
+[![Tests](https://img.shields.io/badge/tests-67%2F67-success)]()
 [![C++17](https://img.shields.io/badge/C++-17-blue)]()
+[![GoogleTest](https://img.shields.io/badge/GoogleTest-submodule-blue)]()
 
 高性能二维有限元框架，支持多物理场耦合分析。
 
@@ -23,6 +24,18 @@
   - 分量边界条件
 
 ## 🚀 快速开始
+
+### 克隆项目
+
+```bash
+# 方式1: 递归克隆 (推荐)
+git clone --recursive https://github.com/blog-guang/fem.git
+
+# 方式2: 先克隆，后拉取 submodule
+git clone https://github.com/blog-guang/fem.git
+cd fem
+git submodule update --init --recursive
+```
 
 ### 编译
 
