@@ -14,13 +14,15 @@
 
 ### Phase 2: 核心功能实现
 
-#### 2.1 网格生成器
-- [ ] `mesh_generator.h/cpp`
-  - [ ] `generate_unit_square_tri()` → 生成 fem::Mesh
-  - [ ] `generate_unit_square_quad()`
-  - [ ] `generate_unit_cube_tet()`
-  - [ ] `generate_unit_cube_brick()`
-- [ ] 测试: `test_mesh_generator.cpp`
+#### 2.1 网格生成器 ✅
+- [x] `mesh_generator.h/cpp`
+  - [x] `generate_unit_square_tri()` → 生成 fem::Mesh
+  - [x] `generate_unit_square_quad()`
+  - [x] `generate_unit_cube_tet()`
+  - [x] `generate_unit_cube_brick()`
+  - [x] `identify_boundaries_2d()` - 自动识别 2D 边界
+  - [x] `identify_boundaries_3d()` - 自动识别 3D 边界
+- [x] 测试: `test_mesh_generator.cpp` (11/11 通过)
 
 #### 2.2 装配系统 (Assembler)
 - [ ] `assembler.h/cpp`
@@ -75,17 +77,21 @@
 
 ## 🎯 当前优先级
 
-**立即执行 (Phase 2.1):**
-1. 实现 `mesh_generator` (生成新 Mesh)
-2. 编写测试验证
-3. 创建一个最简示例 (验证端到端流程)
+**✅ 已完成 (Phase 2.1):**
+- ✓ `mesh_generator` 实现 (4种网格类型)
+- ✓ 边界识别 (2D/3D)
+- ✓ 测试验证 (38/38 通过)
 
-**短期 (Phase 2.2-2.3):**
-- Assembler 重写
-- Physics 模块适配
+**立即执行 (Phase 2.2):**
+1. 实现 Assembler (支持新 Mesh)
+2. BoundaryCondition (Dirichlet/Neumann)
+3. 创建最简示例 (验证端到端流程)
+
+**短期 (Phase 2.3):**
+- Physics 模块适配 (heat, elasticity)
 
 **中期 (Phase 2.4-2.5):**
-- IO 系统
+- IO 系统 (VTK)
 - 完整示例
 
 ---
