@@ -17,6 +17,9 @@ add_library(fem STATIC
     # Assembly
     assembly/sparse_matrix.cpp
     assembly/assembler.cpp
+    # Physics
+    physics/heat.cpp
+    physics/elasticity_v2.cpp
     # Solver
     solver/solver.cpp
     solver/cg.cpp
