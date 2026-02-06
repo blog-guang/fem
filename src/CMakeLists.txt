@@ -14,8 +14,9 @@ add_library(fem STATIC
     mesh/mesh.cpp
     mesh/model.cpp
     mesh/mesh_generator.cpp
-    # Assembly (保留供旧 solver 使用)
+    # Assembly
     assembly/sparse_matrix.cpp
+    assembly/assembler.cpp
     # Solver
     solver/solver.cpp
     solver/cg.cpp

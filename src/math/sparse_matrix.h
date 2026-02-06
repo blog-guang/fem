@@ -169,5 +169,6 @@ SparseMatrixCSR coo_to_csr(const SparseMatrixCOO& coo);
 SparseMatrixCSC coo_to_csc(const SparseMatrixCOO& coo);
 SparseMatrixCSR csc_to_csr(const SparseMatrixCSC& csc);
 SparseMatrixCSC csr_to_csc(const SparseMatrixCSR& csr);
+SparseMatrixCOO csr_to_coo(const SparseMatrixCSR& csr);
 
 }  // namespace fem

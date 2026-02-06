@@ -1,70 +1,224 @@
 #include "assembly/assembler.h"
+#include "core/logger.h"
 
 namespace fem {
 
-Assembler::Assembler(const Mesh& mesh, const ElementBase& elem, std::size_t dofs_per_node)
-    : mesh_(mesh), elem_(elem), dofs_per_node_(dofs_per_node) {}
-
-void Assembler::assemble(ElementStiffnessFn ke_fn,
-                          ElementLoadFn      fe_fn,
-                          COOMatrix&         K,
-                          Vector&            F,
-                          void*              ctx) const
-{
-    std::size_t num_nodes = mesh_.num_nodes();
-    std::size_t total_dofs = num_nodes * dofs_per_node_;
+Assembler::Assembler(const Model& model, Index dofs_per_node)
+    : model_(model), dofs_per_node_(dofs_per_node) {
     
-    K.rows = total_dofs;
-    K.cols = total_dofs;
-    F.assign(total_dofs, 0.0);
+    if (dofs_per_node_ == 0) {
+        throw std::invalid_argument("dofs_per_node must be > 0");
+    }
 
-    // 临时缓冲区 (最大支持 MAX_NODES * dofs_per_node 自由度)
-    constexpr std::size_t MAX_LOCAL_SIZE = MAX_NODES * 8; // assuming max dofs_per_node = 8
-    Real Ke[MAX_LOCAL_SIZE * MAX_LOCAL_SIZE];
-    Real Fe[MAX_LOCAL_SIZE];
-    Vec3 coords[MAX_NODES];
+    // 计算总自由度数 (假设所有网格节点数相同)
+    n_dofs_ = 0;
+    for (std::size_t i = 0; i < model_.num_meshes(); ++i) {
+        const Mesh& mesh = model_.mesh(i);
+        n_dofs_ = std::max(n_dofs_, mesh.num_nodes() * dofs_per_node_);
+    }
 
-    for (std::size_t c = 0; c < mesh_.num_cells(); ++c) {
-        const Cell& cell = mesh_.cell(c);
-        std::size_t n    = cell.num_nodes;
+    if (n_dofs_ == 0) {
+        throw std::runtime_error("Model has no nodes");
+    }
 
-        // 提取单元节点坐标
-        for (std::size_t i = 0; i < n; ++i) {
-            coords[i] = mesh_.coords(cell.node(i));
-        }
+    // 初始化 COO 矩阵和向量
+    K_coo_ = SparseMatrixCOO(n_dofs_, n_dofs_);
+    F_ = Vector(n_dofs_, 0.0);
 
-        // 计算局部自由度总数
-        std::size_t local_size = n * dofs_per_node_;
+    FEM_INFO("Assembler initialized: " + std::to_string(n_dofs_) + " DOFs (" +
+             std::to_string(dofs_per_node_) + " per node)");
+}
 
-        // 单元刚度矩阵
-        if (ke_fn) {
-            ke_fn(coords, n, dofs_per_node_, Ke, ctx);
-            // 装配到全局 K
-            for (std::size_t i = 0; i < n; ++i) {
-                for (std::size_t j = 0; j < n; ++j) {
-                    for (std::size_t di = 0; di < dofs_per_node_; ++di) {
-                        for (std::size_t dj = 0; dj < dofs_per_node_; ++dj) {
-                            Index gi = cell.node(i) * dofs_per_node_ + di;  // 全局 DOF i
-                            Index gj = cell.node(j) * dofs_per_node_ + dj;  // 全局 DOF j
-                            K.add(gi, gj, Ke[(i * dofs_per_node_ + di) * local_size + (j * dofs_per_node_ + dj)]);
+void Assembler::assemble(ElementMatrixFunc elem_func) {
+    clear();
+
+    // 遍历所有网格
+    for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
+        const Mesh& mesh = model_.mesh(mesh_id);
+
+        // 遍历所有单元
+        for (std::size_t elem_id = 0; elem_id < mesh.num_elements(); ++elem_id) {
+            const Element& elem = mesh.element(elem_id);
+            
+            Index n_nodes = elem.nodes().size();
+            Index n_dofs_elem = n_nodes * dofs_per_node_;
+
+            // 单元矩阵和向量
+            DenseMatrix Ke(n_dofs_elem, n_dofs_elem, 0.0);
+            Vector Fe(n_dofs_elem, 0.0);
+
+            // 调用用户提供的单元计算函数
+            elem_func(elem_id, mesh, Ke, Fe);
+
+            // 装配到全局系统
+            for (Index i = 0; i < n_nodes; ++i) {
+                Index node_i = elem.nodes()[i];
+
+                for (Index di = 0; di < dofs_per_node_; ++di) {
+                    Index gi = node_i * dofs_per_node_ + di;  // 全局DOF索引
+
+                    // 装配向量
+                    F_[gi] += Fe[i * dofs_per_node_ + di];
+
+                    // 装配矩阵
+                    for (Index j = 0; j < n_nodes; ++j) {
+                        Index node_j = elem.nodes()[j];
+
+                        for (Index dj = 0; dj < dofs_per_node_; ++dj) {
+                            Index gj = node_j * dofs_per_node_ + dj;
+                            
+                            K_coo_.add(gi, gj, Ke(i * dofs_per_node_ + di, 
+                                                   j * dofs_per_node_ + dj));
                         }
                     }
                 }
             }
         }
+    }
 
-        // 单元载荷向量
-        if (fe_fn) {
-            fe_fn(coords, n, dofs_per_node_, Fe, ctx);
-            // 装配到全局 F
-            for (std::size_t i = 0; i < n; ++i) {
-                for (std::size_t di = 0; di < dofs_per_node_; ++di) {
-                    Index gi = cell.node(i) * dofs_per_node_ + di;  // 全局 DOF
-                    F[gi] += Fe[i * dofs_per_node_ + di];
+    assembled_ = true;
+    FEM_INFO("Assembly completed: " + std::to_string(K_coo_.nnz()) + " non-zeros");
+}
+
+void Assembler::assemble_matrix(ElementMatrixFunc elem_func) {
+    K_coo_ = SparseMatrixCOO(n_dofs_, n_dofs_);
+
+    for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
+        const Mesh& mesh = model_.mesh(mesh_id);
+
+        for (std::size_t elem_id = 0; elem_id < mesh.num_elements(); ++elem_id) {
+            const Element& elem = mesh.element(elem_id);
+            
+            Index n_nodes = elem.nodes().size();
+            Index n_dofs_elem = n_nodes * dofs_per_node_;
+
+            DenseMatrix Ke(n_dofs_elem, n_dofs_elem, 0.0);
+            Vector Fe(n_dofs_elem, 0.0);  // 占位
+
+            elem_func(elem_id, mesh, Ke, Fe);
+
+            // 装配矩阵
+            for (Index i = 0; i < n_nodes; ++i) {
+                Index node_i = elem.nodes()[i];
+
+                for (Index di = 0; di < dofs_per_node_; ++di) {
+                    Index gi = node_i * dofs_per_node_ + di;
+
+                    for (Index j = 0; j < n_nodes; ++j) {
+                        Index node_j = elem.nodes()[j];
+
+                        for (Index dj = 0; dj < dofs_per_node_; ++dj) {
+                            Index gj = node_j * dofs_per_node_ + dj;
+                            
+                            K_coo_.add(gi, gj, Ke(i * dofs_per_node_ + di, 
+                                                   j * dofs_per_node_ + dj));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    assembled_ = true;
+}
+
+void Assembler::assemble_vector(ElementMatrixFunc elem_func) {
+    F_ = Vector(n_dofs_, 0.0);
+
+    for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
+        const Mesh& mesh = model_.mesh(mesh_id);
+
+        for (std::size_t elem_id = 0; elem_id < mesh.num_elements(); ++elem_id) {
+            const Element& elem = mesh.element(elem_id);
+            
+            Index n_nodes = elem.nodes().size();
+            Index n_dofs_elem = n_nodes * dofs_per_node_;
+
+            DenseMatrix Ke(n_dofs_elem, n_dofs_elem, 0.0);  // 占位
+            Vector Fe(n_dofs_elem, 0.0);
+
+            elem_func(elem_id, mesh, Ke, Fe);
+
+            // 装配向量
+            for (Index i = 0; i < n_nodes; ++i) {
+                Index node_i = elem.nodes()[i];
+
+                for (Index di = 0; di < dofs_per_node_; ++di) {
+                    Index gi = node_i * dofs_per_node_ + di;
+                    F_[gi] += Fe[i * dofs_per_node_ + di];
                 }
             }
         }
     }
 }
 
-}  // namespace fem
+void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
+    if (!assembled_) {
+        throw std::runtime_error("Must call assemble() before apply_dirichlet()");
+    }
+
+    // 转换为 CSR 格式以便修改
+    SparseMatrixCSR K_csr = coo_to_csr(K_coo_);
+
+    // 对每个边界条件
+    for (const auto& bc : bcs) {
+        // 获取边界节点
+        std::vector<bool> is_bc_node(n_dofs_, false);
+
+        for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
+            const Mesh& mesh = model_.mesh(mesh_id);
+
+            if (!mesh.has_boundary(bc.boundary_name)) {
+                continue;  // 该网格没有此边界
+            }
+
+            const auto& boundary_nodes = mesh.boundary(bc.boundary_name);
+
+            for (Index node_id : boundary_nodes) {
+                Index dof_id = node_id * dofs_per_node_ + bc.dof;
+                if (dof_id < n_dofs_) {
+                    is_bc_node[dof_id] = true;
+                }
+            }
+        }
+
+        // 应用边界条件: K(ii)=1, K(i,j≠i)=0, F(i)=value
+        for (Index i = 0; i < n_dofs_; ++i) {
+            if (is_bc_node[i]) {
+                Index row_start = K_csr.row_ptr()[i];
+                Index row_end = K_csr.row_ptr()[i + 1];
+
+                for (Index k = row_start; k < row_end; ++k) {
+                    Index j = K_csr.col_indices()[k];
+                    if (j == i) {
+                        K_csr.values()[k] = 1.0;
+                    } else {
+                        K_csr.values()[k] = 0.0;
+                    }
+                }
+
+                F_[i] = bc.value;
+            }
+        }
+    }
+
+    // 转换回 COO 格式 (保持接口一致性)
+    K_coo_ = csr_to_coo(K_csr);
+
+    FEM_INFO("Applied " + std::to_string(bcs.size()) + " Dirichlet BCs");
+}
+
+SparseMatrixCSR Assembler::matrix() const {
+    if (!assembled_) {
+        throw std::runtime_error("Must call assemble() before matrix()");
+    }
+    return coo_to_csr(K_coo_);
+}
+
+void Assembler::clear() {
+    K_coo_ = SparseMatrixCOO(n_dofs_, n_dofs_);
+    F_ = Vector(n_dofs_, 0.0);
+    assembled_ = false;
+}
+
+} // namespace fem

@@ -259,4 +259,22 @@ SparseMatrixCSC csr_to_csc(const SparseMatrixCSR& csr) {
     return coo_to_csc(coo);
 }
 
+// ── CSR → COO 转换 ──
+SparseMatrixCOO csr_to_coo(const SparseMatrixCSR& csr) {
+    SparseMatrixCOO coo(csr.rows(), csr.cols());
+    
+    for (std::size_t i = 0; i < csr.rows(); ++i) {
+        Index start = csr.row_ptr()[i];
+        Index end = csr.row_ptr()[i + 1];
+        
+        for (Index k = start; k < end; ++k) {
+            Index j = csr.col_indices()[k];
+            Real val = csr.values()[k];
+            coo.add(i, j, val);
+        }
+    }
+    
+    return coo;
+}
+
 }  // namespace fem

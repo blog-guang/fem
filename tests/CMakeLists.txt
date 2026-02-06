@@ -12,6 +12,7 @@ add_executable(fem_tests
     test_core.cpp
     test_math.cpp
     test_solver.cpp
+    test_assembler.cpp
     test_mesh_v2.cpp
     test_mesh_generator.cpp
 )
