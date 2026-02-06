@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
-#include "mesh_v2/model.h"
-#include "mesh_v2/mesh.h"
-#include "mesh_v2/material.h"
-#include "mesh_v2/element.h"
+#include "mesh/model.h"
+#include "mesh/mesh.h"
+#include "mesh/material.h"
+#include "mesh/element.h"
 
 using namespace fem;
-using namespace fem::v2;
 
 // ═══ Material Tests ═══
 TEST(MaterialTest, BasicProperties) {

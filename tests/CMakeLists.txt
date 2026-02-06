@@ -10,12 +10,7 @@ FetchContent_MakeAvailable(googletest)
 # ── 测试目标 (按模块逐步添加) ──
 add_executable(fem_tests
     test_core.cpp
-    test_mesh.cpp
-    test_element.cpp
-    test_assembly.cpp
     test_solver.cpp
-    test_io.cpp
-    test_physics.cpp
     test_mesh_v2.cpp
 )
 

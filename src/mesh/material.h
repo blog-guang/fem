@@ -5,7 +5,6 @@
 #include <unordered_map>
 
 namespace fem {
-namespace v2 {
 
 class Material {
 public:
@@ -62,5 +61,4 @@ private:
     std::unordered_map<std::string, Real> properties_;
 };
 
-}  // namespace v2
 }  // namespace fem

@@ -26,7 +26,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # ── 子目录 ──
 add_subdirectory(src)
 add_subdirectory(tests)
-add_subdirectory(examples)
 
 # ── 测试 ──
 enable_testing()

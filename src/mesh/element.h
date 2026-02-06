@@ -6,7 +6,6 @@
 #include <memory>
 
 namespace fem {
-namespace v2 {
 
 // ElementType 定义在 core/types.h 中
 
@@ -296,5 +295,4 @@ private:
     std::vector<Index> nodes_;  // 8 corner + 12 edge mid
 };
 
-}  // namespace v2
 }  // namespace fem

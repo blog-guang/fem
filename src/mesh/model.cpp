@@ -1,8 +1,7 @@
-#include "mesh_v2/model.h"
+#include "mesh/model.h"
 #include "core/logger.h"
 
 namespace fem {
-namespace v2 {
 
 void Model::print_info() const {
     FEM_INFO("Model: " + name_);
@@ -49,5 +48,4 @@ void Model::validate() const {
     FEM_INFO("Model validation complete.");
 }
 
-}  // namespace v2
 }  // namespace fem

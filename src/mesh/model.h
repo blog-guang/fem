@@ -1,13 +1,12 @@
 #pragma once
 
-#include "mesh_v2/mesh.h"
-#include "mesh_v2/material.h"
+#include "mesh/mesh.h"
+#include "mesh/material.h"
 #include "core/logger.h"
 #include <vector>
 #include <string>
 
 namespace fem {
-namespace v2 {
 
 /**
  * Model: 顶层模型容器
@@ -113,5 +112,4 @@ private:
     std::vector<Interface> interfaces_;
 };
 
-}  // namespace v2
 }  // namespace fem
