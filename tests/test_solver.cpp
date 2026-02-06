@@ -3,6 +3,7 @@
 #include "assembly/sparse_matrix.h"
 
 using namespace fem;
+using Vector = std::vector<Real>;  // 兼容旧代码
 
 // ── 辅助: 构造 SPD 三对角矩阵 ──
 // [[2,-1,0],[-1,2,-1],[0,-1,2]]

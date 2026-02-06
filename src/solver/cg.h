@@ -8,8 +8,8 @@ namespace fem {
 class CGSolver : public LinearSolver {
 public:
     SolveResult solve(const CSRMatrix& K,
-                      const Vector&    F,
-                      Vector&          x) override;
+                      const std::vector<Real>& F,
+                      std::vector<Real>& x) override;
 };
 
 }  // namespace fem

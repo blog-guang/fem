@@ -20,8 +20,8 @@ public:
     virtual ~LinearSolver() = default;
 
     virtual SolveResult solve(const CSRMatrix& K,
-                              const Vector&    F,
-                              Vector&          x) = 0;
+                              const std::vector<Real>& F,
+                              std::vector<Real>& x) = 0;
 
     void set_tol(Real tol)              { tol_ = tol; }
     void set_max_iter(std::size_t iter) { max_iter_ = iter; }

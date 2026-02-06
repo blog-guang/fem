@@ -15,7 +15,7 @@ using Real   = double;
 using Index  = std::size_t;
 using Vec2   = std::array<Real, 2>;
 using Vec3   = std::array<Real, 3>;
-using Vector = std::vector<Real>;
+// Vector 类现在在 math/vector.h 中定义
 
 // ── 单元节点上限 (Hex=8, 覆盖所有常用单元) ──
 constexpr std::size_t MAX_NODES = 8;

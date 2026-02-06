@@ -5,12 +5,16 @@ add_library(fem STATIC
     # Core
     core/logger.cpp
     core/timer.cpp
+    # Math
+    math/vector.cpp
+    math/dense_matrix.cpp
+    math/sparse_matrix.cpp
     # Mesh (新架构)
     mesh/material.cpp
     mesh/mesh.cpp
     mesh/model.cpp
     mesh/mesh_generator.cpp
-    # Assembly (保留 sparse_matrix 供 solver 使用)
+    # Assembly (保留供旧 solver 使用)
     assembly/sparse_matrix.cpp
     # Solver
     solver/solver.cpp

@@ -4,6 +4,9 @@
 
 namespace fem {
 
+// 兼容旧代码
+using Vector = std::vector<Real>;
+
 static Real dot(const Vector& a, const Vector& b) {
     Real s = 0.0;
     for (std::size_t i = 0; i < a.size(); ++i) s += a[i] * b[i];
@@ -11,8 +14,8 @@ static Real dot(const Vector& a, const Vector& b) {
 }
 
 SolveResult BiCGSTABSolver::solve(const CSRMatrix& K,
-                                   const Vector&    F,
-                                   Vector&          x)
+                                   const std::vector<Real>& F,
+                                   std::vector<Real>& x)
 {
     std::size_t n = F.size();
     x.assign(n, 0.0);
