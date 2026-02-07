@@ -19,6 +19,8 @@ add_library(fem STATIC
     # Physics
     physics/heat.cpp
     physics/elasticity_v2.cpp
+    # IO
+    io/vtk_writer.cpp
     # Solver
     solver/solver.cpp
     solver/cg.cpp

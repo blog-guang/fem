@@ -15,6 +15,7 @@
 #include "assembly/assembler.h"
 #include "physics/heat.h"
 #include "solver/cg.h"
+#include "io/vtk_writer.h"
 #include "core/timer.h"
 #include "core/logger.h"
 
@@ -112,6 +113,18 @@ int main() {
         
         // 理论值: Q * L^2 / (8*k) = 10 * 1 / 8 = 1.25 (近似)
         FEM_INFO("Theoretical max (approx): 1.25");
+        
+        // ── 7. 输出 VTK 文件 ──
+        FEM_INFO("\n=== Exporting VTK ===");
+        try {
+            VTKWriter vtk("heat_2d_result");
+            vtk.write_mesh(mesh);
+            vtk.add_point_scalar("temperature", u_std);
+            vtk.close();
+            FEM_INFO("VTK file written: heat_2d_result.vtk");
+        } catch (const std::exception& e) {
+            FEM_WARN("VTK export failed: " + std::string(e.what()));
+        }
         
         FEM_INFO("Demo completed successfully!");
     } else {

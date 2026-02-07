@@ -20,6 +20,7 @@
 #include "assembly/assembler.h"
 #include "physics/elasticity_v2.h"
 #include "solver/cg.h"
+#include "io/vtk_writer.h"
 #include "core/timer.h"
 #include "core/logger.h"
 
@@ -134,6 +135,18 @@ int main() {
         
         FEM_INFO("Center displacement: u_x=" + fmt_sci(u_x_center) + 
                  ", u_y=" + fmt_sci(u_y_center));
+        
+        // ── 7. 输出 VTK 文件 ──
+        FEM_INFO("\n=== Exporting VTK ===");
+        try {
+            VTKWriter vtk("elasticity_2d_result");
+            vtk.write_mesh(mesh);
+            vtk.add_point_vector("displacement", u_std, 2);  // 2D 矢量场
+            vtk.close();
+            FEM_INFO("VTK file written: elasticity_2d_result.vtk");
+        } catch (const std::exception& e) {
+            FEM_WARN("VTK export failed: " + std::string(e.what()));
+        }
         
         FEM_INFO("Demo completed successfully!");
     } else {
