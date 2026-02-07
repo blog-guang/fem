@@ -257,7 +257,7 @@ void Assembler::apply_neumann(const std::vector<NeumannBC>& bcs) {
         throw std::runtime_error("Must call assemble() before apply_neumann()");
     }
 
-    std::size_t total_bc_nodes = 0;
+    std::size_t total_bc_dofs = 0;
 
     for (const auto& bc : bcs) {
         for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
@@ -269,53 +269,48 @@ void Assembler::apply_neumann(const std::vector<NeumannBC>& bcs) {
 
             const auto& boundary_nodes = mesh.boundary(bc.boundary_name);
 
-            // 计算边界积分
-            // 对于 2D，边界是线段的集合
-            // 简化处理：假设相邻节点构成边界单元
-            
             if (boundary_nodes.empty()) continue;
 
-            // 方法1: 均匀分布（简化）
-            // 每个边界节点获得相同的贡献
-            // 更精确的方法需要识别边界单元并进行积分
+            // 当前实现对边界节点进行线积分
+            // 注意：这里假设 boundary_nodes 中的节点按空间顺序排列
+            // 这依赖于 MeshGenerator::identify_boundaries_2d() 的实现
+            // 在矩形域的边界上，节点通常按坐标顺序排列，满足此假设
             
-            // 计算边界总长度（近似）
-            Real total_length = 0.0;
             for (std::size_t i = 1; i < boundary_nodes.size(); ++i) {
+                // 处理相邻节点对，模拟边界单元 (Edge2)
                 Index n0 = boundary_nodes[i-1];
                 Index n1 = boundary_nodes[i];
                 
                 const auto& c0 = mesh.node(n0).coords();
                 const auto& c1 = mesh.node(n1).coords();
                 
+                // 计算边界段长度
                 Real dx = c1[0] - c0[0];
                 Real dy = c1[1] - c0[1];
                 Real dz = c1[2] - c0[2];
                 Real seg_length = std::sqrt(dx*dx + dy*dy + dz*dz);
                 
-                total_length += seg_length;
-                
-                // 将贡献分配到两个端点
-                Real contribution = bc.value * seg_length / 2.0;
+                // 梯形积分：每个节点获得 half-load
+                Real half_load = bc.value * seg_length / 2.0;
                 
                 Index dof0 = n0 * dofs_per_node_ + bc.dof;
                 Index dof1 = n1 * dofs_per_node_ + bc.dof;
                 
                 // 跳过已被 Dirichlet BC 约束的 DOF
                 if (dof0 < n_dofs_ && !is_dirichlet_dof_[dof0]) {
-                    F_[dof0] += contribution;
+                    F_[dof0] += half_load;
+                    total_bc_dofs++;
                 }
                 if (dof1 < n_dofs_ && !is_dirichlet_dof_[dof1]) {
-                    F_[dof1] += contribution;
+                    F_[dof1] += half_load;
+                    total_bc_dofs++;
                 }
             }
-            
-            total_bc_nodes += boundary_nodes.size();
         }
     }
 
     FEM_INFO("Applied " + std::to_string(bcs.size()) + " Neumann BCs (" + 
-             std::to_string(total_bc_nodes) + " boundary nodes)");
+             std::to_string(total_bc_dofs) + " boundary DOFs modified)");
 }
 
 SparseMatrixCSR Assembler::matrix() const {
