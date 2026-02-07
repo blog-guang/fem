@@ -37,12 +37,27 @@ using ElementMatrixFunc = std::function<void(
 )>;
 
 /**
- * 边界条件数据
+ * Dirichlet 边界条件数据
  */
 struct DirichletBC {
     std::string boundary_name;  ///< 边界名称 (e.g., "left", "right")
     Index dof;                  ///< 自由度索引 (0=x, 1=y, etc.)
     Real value;                 ///< 边界值
+};
+
+/**
+ * Neumann 边界条件数据 (自然边界条件)
+ * 
+ * 用于施加表面力、热流等
+ * 
+ * 示例:
+ * - 热传导: q·n = q_0 (热流)
+ * - 弹性: t = σ·n (表面力)
+ */
+struct NeumannBC {
+    std::string boundary_name;  ///< 边界名称 (e.g., "top", "right")
+    Index dof;                  ///< 自由度索引 (标量场用0，矢量场用对应分量)
+    Real value;                 ///< 边界值 (标量: q, 矢量: t_x, t_y)
 };
 
 /**
@@ -97,6 +112,17 @@ public:
     void apply_dirichlet(const std::vector<DirichletBC>& bcs);
 
     /**
+     * 应用 Neumann 边界条件
+     * 
+     * 通过边界积分修改载荷向量:
+     * F_i += ∫_Γ N_i q dΓ  (标量场)
+     * F_i += ∫_Γ N_i t dΓ  (矢量场)
+     * 
+     * @param bcs Neumann 边界条件列表
+     */
+    void apply_neumann(const std::vector<NeumannBC>& bcs);
+
+    /**
      * 获取装配后的刚度矩阵 (CSR格式)
      */
     SparseMatrixCSR matrix() const;
@@ -130,6 +156,7 @@ private:
     Vector F_;                    ///< 载荷向量
 
     bool assembled_{false};       ///< 是否已装配
+    std::vector<bool> is_dirichlet_dof_;  ///< 标记 Dirichlet 约束的 DOF
 };
 
 } // namespace fem

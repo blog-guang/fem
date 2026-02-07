@@ -22,3 +22,7 @@ target_include_directories(elasticity_debug PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_executable(elasticity_full_debug elasticity_full_debug.cpp)
 target_link_libraries(elasticity_full_debug PRIVATE fem)
 target_include_directories(elasticity_full_debug PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+add_executable(cantilever_beam cantilever_beam.cpp)
+target_link_libraries(cantilever_beam PRIVATE fem)
+target_include_directories(cantilever_beam PRIVATE ${CMAKE_SOURCE_DIR}/src)

@@ -6,7 +6,8 @@ namespace fem {
 
 VTKWriter::VTKWriter(const std::string& filename)
     : filename_(filename), mesh_written_(false), 
-      point_data_started_(false), num_points_(0) {
+      point_data_started_(false), cell_data_started_(false),
+      num_points_(0), num_cells_(0) {
     
     // 确保文件名有 .vtk 后缀
     if (filename_.size() < 4 || filename_.substr(filename_.size() - 4) != ".vtk") {
@@ -100,6 +101,8 @@ void VTKWriter::write_mesh(const Mesh& mesh) {
         throw std::runtime_error("Mesh already written to VTK file");
     }
     
+    num_cells_ = mesh.num_elements();
+    
     write_header("FEM Simulation Results");
     write_points(mesh);
     write_cells(mesh);
@@ -108,7 +111,7 @@ void VTKWriter::write_mesh(const Mesh& mesh) {
     mesh_written_ = true;
     
     FEM_INFO("Mesh written: " + std::to_string(num_points_) + " nodes, " + 
-             std::to_string(mesh.num_elements()) + " elements");
+             std::to_string(num_cells_) + " elements");
 }
 
 void VTKWriter::start_point_data() {
@@ -175,6 +178,66 @@ void VTKWriter::add_point_vector(const std::string& name,
                                  const Vector& data,
                                  Index dof) {
     add_point_vector(name, data.raw(), dof);
+}
+
+void VTKWriter::start_cell_data() {
+    if (!mesh_written_) {
+        throw std::runtime_error("Must write mesh before adding cell data");
+    }
+    
+    if (!cell_data_started_) {
+        file_ << "CELL_DATA " << num_cells_ << "\n";
+        cell_data_started_ = true;
+    }
+}
+
+void VTKWriter::add_cell_scalar(const std::string& name,
+                                const std::vector<Real>& data) {
+    start_cell_data();
+    
+    if (data.size() != num_cells_) {
+        throw std::runtime_error("Cell scalar data size mismatch: expected " + 
+                               std::to_string(num_cells_) + ", got " + 
+                               std::to_string(data.size()));
+    }
+    
+    file_ << "SCALARS " << name << " float 1\n";
+    file_ << "LOOKUP_TABLE default\n";
+    
+    for (Real value : data) {
+        file_ << value << "\n";
+    }
+    
+    FEM_INFO("Added cell scalar: " + name);
+}
+
+void VTKWriter::add_cell_vector(const std::string& name,
+                                const std::vector<Real>& data,
+                                Index dof) {
+    start_cell_data();
+    
+    if (data.size() != num_cells_ * dof) {
+        throw std::runtime_error("Cell vector data size mismatch: expected " + 
+                               std::to_string(num_cells_ * dof) + ", got " + 
+                               std::to_string(data.size()));
+    }
+    
+    file_ << "VECTORS " << name << " float\n";
+    
+    for (std::size_t i = 0; i < num_cells_; ++i) {
+        if (dof == 2) {
+            // 2D: 补充 z=0
+            file_ << data[i * 2] << " " << data[i * 2 + 1] << " 0.0\n";
+        } else if (dof == 3) {
+            // 3D
+            file_ << data[i * 3] << " " << data[i * 3 + 1] << " " 
+                  << data[i * 3 + 2] << "\n";
+        } else {
+            throw std::runtime_error("Unsupported DOF: " + std::to_string(dof));
+        }
+    }
+    
+    FEM_INFO("Added cell vector: " + name + " (dof=" + std::to_string(dof) + ")");
 }
 
 void VTKWriter::close() {

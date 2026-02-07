@@ -203,3 +203,162 @@ TEST(AssemblerTest, Clear) {
     assembler.assemble(elem_func);
     EXPECT_GT(assembler.matrix().nnz(), 0u);
 }
+
+// ═══ Neumann BC Tests ═══
+
+TEST(AssemblerTest, ApplyNeumannScalar) {
+    // 测试标量场 Neumann 边界条件 (例如热流)
+    Model model("test");
+    int mat_id = model.add_material("mat");
+    int mesh_id = model.add_mesh("mesh", mat_id);
+    
+    Mesh& mesh = model.mesh(mesh_id);
+    MeshGenerator::generate_unit_square_tri(3, 3, mesh);
+    MeshGenerator::identify_boundaries_2d(mesh);
+    
+    Assembler assembler(model, 1);  // 标量场
+    
+    auto elem_func = [](Index elem_id, const Mesh& m, DenseMatrix& Ke, Vector& Fe) {
+        Ke.identity();
+        for (std::size_t i = 0; i < Fe.size(); ++i) {
+            Fe[i] = 0.0;  // 初始载荷为0
+        }
+    };
+    
+    assembler.assemble(elem_func);
+    
+    // 记录初始载荷
+    Vector F_initial = assembler.rhs();
+    Real initial_sum = 0.0;
+    for (std::size_t i = 0; i < F_initial.size(); ++i) {
+        initial_sum += F_initial[i];
+    }
+    
+    // 应用 Neumann BC: 右边界热流 q = 10.0
+    std::vector<NeumannBC> bcs = {
+        {"right", 0, 10.0}  // dof=0 (标量), value=10.0
+    };
+    
+    assembler.apply_neumann(bcs);
+    
+    // 验证载荷向量已修改
+    const Vector& F_final = assembler.rhs();
+    Real final_sum = 0.0;
+    for (std::size_t i = 0; i < F_final.size(); ++i) {
+        final_sum += F_final[i];
+    }
+    
+    // Neumann BC 应该增加总载荷
+    EXPECT_GT(final_sum, initial_sum);
+    
+    // 右边界节点的载荷应该非零
+    const auto& right_nodes = mesh.boundary("right");
+    bool has_nonzero = false;
+    for (Index node_id : right_nodes) {
+        if (std::abs(F_final[node_id]) > 1e-10) {
+            has_nonzero = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(has_nonzero);
+}
+
+TEST(AssemblerTest, ApplyNeumannVector) {
+    // 测试矢量场 Neumann 边界条件 (例如表面力)
+    Model model("test");
+    int mat_id = model.add_material("mat");
+    int mesh_id = model.add_mesh("mesh", mat_id);
+    
+    Mesh& mesh = model.mesh(mesh_id);
+    MeshGenerator::generate_unit_square_tri(3, 3, mesh);
+    MeshGenerator::identify_boundaries_2d(mesh);
+    
+    Assembler assembler(model, 2);  // 2D 矢量场
+    
+    auto elem_func = [](Index elem_id, const Mesh& m, DenseMatrix& Ke, Vector& Fe) {
+        Ke.identity();
+        for (std::size_t i = 0; i < Fe.size(); ++i) {
+            Fe[i] = 0.0;
+        }
+    };
+    
+    assembler.assemble(elem_func);
+    
+    // 应用 Neumann BC: 顶部表面力 t_y = -1.0 (向下)
+    std::vector<NeumannBC> bcs = {
+        {"top", 1, -1.0}  // dof=1 (y方向), value=-1.0
+    };
+    
+    assembler.apply_neumann(bcs);
+    
+    const Vector& F = assembler.rhs();
+    
+    // 顶部节点的 y 方向载荷应该非零
+    const auto& top_nodes = mesh.boundary("top");
+    bool has_y_load = false;
+    for (Index node_id : top_nodes) {
+        Index dof_y = node_id * 2 + 1;  // y 分量
+        if (std::abs(F[dof_y]) > 1e-10) {
+            has_y_load = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(has_y_load);
+}
+
+TEST(AssemblerTest, MultipleNeumannBCs) {
+    // 测试多个 Neumann 边界条件
+    Model model("test");
+    int mat_id = model.add_material("mat");
+    int mesh_id = model.add_mesh("mesh", mat_id);
+    
+    Mesh& mesh = model.mesh(mesh_id);
+    MeshGenerator::generate_unit_square_tri(3, 3, mesh);
+    MeshGenerator::identify_boundaries_2d(mesh);
+    
+    Assembler assembler(model, 2);
+    
+    auto elem_func = [](Index elem_id, const Mesh& m, DenseMatrix& Ke, Vector& Fe) {
+        Ke.identity();
+        for (std::size_t i = 0; i < Fe.size(); ++i) {
+            Fe[i] = 0.0;
+        }
+    };
+    
+    assembler.assemble(elem_func);
+    
+    // 应用多个 Neumann BC
+    std::vector<NeumannBC> bcs = {
+        {"top", 1, -1.0},    // 顶部 y 方向
+        {"right", 0, 0.5}    // 右侧 x 方向
+    };
+    
+    assembler.apply_neumann(bcs);
+    
+    const Vector& F = assembler.rhs();
+    
+    // 验证两个边界都有载荷
+    const auto& top_nodes = mesh.boundary("top");
+    const auto& right_nodes = mesh.boundary("right");
+    
+    bool has_top_load = false;
+    for (Index node_id : top_nodes) {
+        Index dof_y = node_id * 2 + 1;
+        if (std::abs(F[dof_y]) > 1e-10) {
+            has_top_load = true;
+            break;
+        }
+    }
+    
+    bool has_right_load = false;
+    for (Index node_id : right_nodes) {
+        Index dof_x = node_id * 2 + 0;
+        if (std::abs(F[dof_x]) > 1e-10) {
+            has_right_load = true;
+            break;
+        }
+    }
+    
+    EXPECT_TRUE(has_top_load);
+    EXPECT_TRUE(has_right_load);
+}

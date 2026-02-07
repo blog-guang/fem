@@ -72,6 +72,23 @@ public:
                          Index dof);
 
     /**
+     * 添加单元标量场数据
+     * @param name 数据名称
+     * @param data 数据向量 (大小应等于单元数)
+     */
+    void add_cell_scalar(const std::string& name, const std::vector<Real>& data);
+
+    /**
+     * 添加单元矢量场数据
+     * @param name 数据名称
+     * @param data 数据向量 (大小应为单元数 * dof)
+     * @param dof 每个单元的维度 (2 或 3)
+     */
+    void add_cell_vector(const std::string& name,
+                        const std::vector<Real>& data,
+                        Index dof);
+
+    /**
      * 关闭文件
      */
     void close();
@@ -81,7 +98,9 @@ private:
     std::string filename_;
     bool mesh_written_;
     bool point_data_started_;
+    bool cell_data_started_;
     std::size_t num_points_;
+    std::size_t num_cells_;
 
     /**
      * 写入 VTK 文件头
@@ -107,6 +126,11 @@ private:
      * 开始 POINT_DATA 部分
      */
     void start_point_data();
+
+    /**
+     * 开始 CELL_DATA 部分
+     */
+    void start_cell_data();
 
     /**
      * 将 ElementType 转换为 VTK 单元类型编号

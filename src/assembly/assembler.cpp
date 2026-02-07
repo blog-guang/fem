@@ -24,6 +24,7 @@ Assembler::Assembler(const Model& model, Index dofs_per_node)
     // 初始化 COO 矩阵和向量
     K_coo_ = SparseMatrixCOO(n_dofs_, n_dofs_);
     F_ = Vector(n_dofs_, 0.0);
+    is_dirichlet_dof_.resize(n_dofs_, false);
 
     FEM_INFO("Assembler initialized: " + std::to_string(n_dofs_) + " DOFs (" +
              std::to_string(dofs_per_node_) + " per node)");
@@ -179,6 +180,7 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
                 if (dof_id < n_dofs_) {
                     is_bc_dof[dof_id] = true;
                     bc_values[dof_id] = bc.value;
+                    is_dirichlet_dof_[dof_id] = true;  // 标记为 Dirichlet DOF
                 }
             }
         }
@@ -250,6 +252,72 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
     FEM_INFO("Applied " + std::to_string(bcs.size()) + " Dirichlet BCs");
 }
 
+void Assembler::apply_neumann(const std::vector<NeumannBC>& bcs) {
+    if (!assembled_) {
+        throw std::runtime_error("Must call assemble() before apply_neumann()");
+    }
+
+    std::size_t total_bc_nodes = 0;
+
+    for (const auto& bc : bcs) {
+        for (std::size_t mesh_id = 0; mesh_id < model_.num_meshes(); ++mesh_id) {
+            const Mesh& mesh = model_.mesh(mesh_id);
+
+            if (!mesh.has_boundary(bc.boundary_name)) {
+                continue;
+            }
+
+            const auto& boundary_nodes = mesh.boundary(bc.boundary_name);
+
+            // 计算边界积分
+            // 对于 2D，边界是线段的集合
+            // 简化处理：假设相邻节点构成边界单元
+            
+            if (boundary_nodes.empty()) continue;
+
+            // 方法1: 均匀分布（简化）
+            // 每个边界节点获得相同的贡献
+            // 更精确的方法需要识别边界单元并进行积分
+            
+            // 计算边界总长度（近似）
+            Real total_length = 0.0;
+            for (std::size_t i = 1; i < boundary_nodes.size(); ++i) {
+                Index n0 = boundary_nodes[i-1];
+                Index n1 = boundary_nodes[i];
+                
+                const auto& c0 = mesh.node(n0).coords();
+                const auto& c1 = mesh.node(n1).coords();
+                
+                Real dx = c1[0] - c0[0];
+                Real dy = c1[1] - c0[1];
+                Real dz = c1[2] - c0[2];
+                Real seg_length = std::sqrt(dx*dx + dy*dy + dz*dz);
+                
+                total_length += seg_length;
+                
+                // 将贡献分配到两个端点
+                Real contribution = bc.value * seg_length / 2.0;
+                
+                Index dof0 = n0 * dofs_per_node_ + bc.dof;
+                Index dof1 = n1 * dofs_per_node_ + bc.dof;
+                
+                // 跳过已被 Dirichlet BC 约束的 DOF
+                if (dof0 < n_dofs_ && !is_dirichlet_dof_[dof0]) {
+                    F_[dof0] += contribution;
+                }
+                if (dof1 < n_dofs_ && !is_dirichlet_dof_[dof1]) {
+                    F_[dof1] += contribution;
+                }
+            }
+            
+            total_bc_nodes += boundary_nodes.size();
+        }
+    }
+
+    FEM_INFO("Applied " + std::to_string(bcs.size()) + " Neumann BCs (" + 
+             std::to_string(total_bc_nodes) + " boundary nodes)");
+}
+
 SparseMatrixCSR Assembler::matrix() const {
     if (!assembled_) {
         throw std::runtime_error("Must call assemble() before matrix()");
@@ -260,6 +328,7 @@ SparseMatrixCSR Assembler::matrix() const {
 void Assembler::clear() {
     K_coo_ = SparseMatrixCOO(n_dofs_, n_dofs_);
     F_ = Vector(n_dofs_, 0.0);
+    is_dirichlet_dof_.assign(n_dofs_, false);
     assembled_ = false;
 }
 
