@@ -1,36 +1,16 @@
 # ── 示例程序 ──
-add_executable(poisson_2d_v2 poisson_2d_v2.cpp)
-target_link_libraries(poisson_2d_v2 PRIVATE fem)
-target_include_directories(poisson_2d_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-add_executable(heat_2d heat_2d.cpp)
-target_link_libraries(heat_2d PRIVATE fem)
-target_include_directories(heat_2d PRIVATE ${CMAKE_SOURCE_DIR}/src)
+# 材料模型演示
+add_executable(material_demo material_demo.cpp)
+target_link_libraries(material_demo PRIVATE fem)
+target_include_directories(material_demo PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-add_executable(elasticity_2d elasticity_2d.cpp)
-target_link_libraries(elasticity_2d PRIVATE fem)
-target_include_directories(elasticity_2d PRIVATE ${CMAKE_SOURCE_DIR}/src)
+# 材料模型演示
+add_executable(material_demo material_demo.cpp)
+target_link_libraries(material_demo PRIVATE fem)
+target_include_directories(material_demo PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-add_executable(elasticity_simple elasticity_simple.cpp)
-target_link_libraries(elasticity_simple PRIVATE fem)
-target_include_directories(elasticity_simple PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-add_executable(elasticity_debug elasticity_debug.cpp)
-target_link_libraries(elasticity_debug PRIVATE fem)
-target_include_directories(elasticity_debug PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-add_executable(elasticity_full_debug elasticity_full_debug.cpp)
-target_link_libraries(elasticity_full_debug PRIVATE fem)
-target_include_directories(elasticity_full_debug PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-add_executable(cantilever_beam cantilever_beam.cpp)
-target_link_libraries(cantilever_beam PRIVATE fem)
-target_include_directories(cantilever_beam PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-add_executable(thermal_stress_2d thermal_stress_2d.cpp)
-target_link_libraries(thermal_stress_2d PRIVATE fem)
-target_include_directories(thermal_stress_2d PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-add_executable(nonlinear_truss nonlinear_truss.cpp)
-target_link_libraries(nonlinear_truss PRIVATE fem)
-target_include_directories(nonlinear_truss PRIVATE ${CMAKE_SOURCE_DIR}/src)
+# 材料模型简化测试
+add_executable(material_simple_test material_simple_test.cpp)
+target_link_libraries(material_simple_test PRIVATE fem)
+target_include_directories(material_simple_test PRIVATE ${CMAKE_SOURCE_DIR}/src)

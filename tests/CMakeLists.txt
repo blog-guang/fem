@@ -7,6 +7,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest
 add_executable(fem_tests
     test_core.cpp
     test_math.cpp
+    test_material.cpp
+    test_material_models.cpp
     test_solver.cpp
     test_assembler.cpp
     test_physics.cpp

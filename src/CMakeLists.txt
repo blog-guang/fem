@@ -9,6 +9,11 @@ add_library(fem STATIC
     math/vector.cpp
     math/dense_matrix.cpp
     math/sparse_matrix.cpp
+    # Material (本构模型)
+    material/state_variables.cpp
+    material/material.cpp
+    material/isotropic_elastic.cpp
+    material/j2_plasticity.cpp
     # Mesh (新架构)
     mesh/material.cpp
     mesh/mesh.cpp
@@ -19,6 +24,7 @@ add_library(fem STATIC
     # Physics
     physics/heat.cpp
     physics/elasticity_v2.cpp
+    physics/elasticity_material.cpp
     # IO
     io/vtk_writer.cpp
     # Solver
