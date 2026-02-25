@@ -16,6 +16,13 @@ add_library(fem STATIC
     material/orthotropic_elastic.cpp
     material/j2_plasticity.cpp
     material/j2_plasticity_kinematic.cpp
+    # Shape (形函数)
+    shape/shape_function.cpp
+    shape/shape_tri3.cpp
+    shape/shape_quad4.cpp
+    shape/shape_tet4.cpp
+    shape/shape_brick8.cpp
+    shape/shape_function_factory.cpp
     # Mesh (新架构)
     mesh/material.cpp
     mesh/mesh.cpp

@@ -10,6 +10,7 @@ add_executable(fem_tests
     test_material.cpp
     test_material_models.cpp
     test_advanced_materials.cpp
+    test_shape_function.cpp
     test_solver.cpp
     test_assembler.cpp
     test_physics.cpp
