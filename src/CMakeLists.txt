@@ -13,7 +13,9 @@ add_library(fem STATIC
     material/state_variables.cpp
     material/material.cpp
     material/isotropic_elastic.cpp
+    material/orthotropic_elastic.cpp
     material/j2_plasticity.cpp
+    material/j2_plasticity_kinematic.cpp
     # Mesh (新架构)
     mesh/material.cpp
     mesh/mesh.cpp

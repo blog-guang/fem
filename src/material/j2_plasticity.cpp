@@ -320,5 +320,63 @@ DenseMatrix J2Plasticity::consistentTangent(
     return D_ep;
 }
 
+DenseMatrix J2Plasticity::consistentTangentFull(
+    const Vector& stress,
+    Real delta_gamma,
+    Real equiv_plastic_strain
+) const {
+    // 完整一致性切线刚度（精确计算）
+    // 参考：Simo & Hughes (1998), de Souza Neto et al. (2008)
+    
+    Real E = getParameter("E");
+    Real nu = getParameter("nu");
+    Real G = E / (2.0 * (1.0 + nu));
+    Real K = E / (3.0 * (1.0 - 2.0 * nu));  // 体积模量
+    Real H = getParameter("H");
+    
+    // 弹性刚度矩阵
+    DenseMatrix D_e = elasticTensor();
+    
+    if (delta_gamma < 1e-12) {
+        // 弹性状态
+        return D_e;
+    }
+    
+    // 计算偏应力
+    Vector s = deviatoricStress(stress);
+    Real p = hydrostaticPressure(stress);
+    
+    // von Mises 应力
+    Real q = vonMisesStress(stress);
+    
+    if (q < 1e-10) {
+        // 静水压力状态
+        return D_e;
+    }
+    
+    // 流动方向：n = √(3/2) * s / ||s||
+    Vector n(strain_size_);
+    Real sqrt_3_2 = std::sqrt(1.5);
+    for (std::size_t i = 0; i < strain_size_; ++i) {
+        n[i] = sqrt_3_2 * s[i] / q;
+    }
+    
+    // 硬化模量（切线）
+    Real h = 3.0 * G + H;
+    
+    // 一致性切线：D^ep = D^e - (3G)^2 / h * (n ⊗ n)
+    DenseMatrix D_ep = D_e;
+    
+    Real factor = 9.0 * G * G / h;  // (3G)^2 / h
+    
+    for (std::size_t i = 0; i < strain_size_; ++i) {
+        for (std::size_t j = 0; j < strain_size_; ++j) {
+            D_ep(i, j) -= factor * n[i] * n[j];
+        }
+    }
+    
+    return D_ep;
+}
+
 }  // namespace constitutive
 }  // namespace fem
