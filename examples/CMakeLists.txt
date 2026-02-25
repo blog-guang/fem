@@ -30,3 +30,7 @@ target_include_directories(cantilever_beam PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_executable(thermal_stress_2d thermal_stress_2d.cpp)
 target_link_libraries(thermal_stress_2d PRIVATE fem)
 target_include_directories(thermal_stress_2d PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+add_executable(nonlinear_truss nonlinear_truss.cpp)
+target_link_libraries(nonlinear_truss PRIVATE fem)
+target_include_directories(nonlinear_truss PRIVATE ${CMAKE_SOURCE_DIR}/src)

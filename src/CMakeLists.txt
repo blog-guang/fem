@@ -25,6 +25,7 @@ add_library(fem STATIC
     solver/solver.cpp
     solver/cg.cpp
     solver/bicgstab.cpp
+    solver/newton_raphson.cpp
 )
 
 target_include_directories(fem PUBLIC
