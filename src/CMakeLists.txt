@@ -33,6 +33,7 @@ add_library(fem STATIC
     # Physics
     physics/heat.cpp
     physics/elasticity_v2.cpp
+    physics/elasticity_3d.cpp
     physics/elasticity_material.cpp
     # IO
     io/vtk_writer.cpp

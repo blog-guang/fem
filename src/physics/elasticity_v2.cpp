@@ -1,4 +1,5 @@
 #include "physics/elasticity_v2.h"
+#include "shape/shape_function_factory.h"
 #include "core/logger.h"
 #include <cmath>
 
@@ -31,66 +32,96 @@ void Elasticity2D::compute_element(Index elem_id, const Mesh& mesh,
                                   DenseMatrix& Ke, Vector& Fe) const {
     const Element& elem = mesh.element(elem_id);
     
-    // 目前仅支持 Tri3
-    if (elem.type() != ElementType::Tri3) {
+    // 检查单元类型（支持 2D 单元）
+    ElementType elem_type = elem.type();
+    if (elem_type != ElementType::Tri3 && elem_type != ElementType::Quad4) {
         FEM_WARN("Elasticity2D: unsupported element type, skipping");
         return;
     }
     
+    // 获取单元节点坐标
     const auto& nodes = elem.nodes();
-    Vec3 coords[3];
-    for (int i = 0; i < 3; ++i) {
+    Index n_nodes = nodes.size();
+    std::vector<Vec3> coords(n_nodes);
+    for (Index i = 0; i < n_nodes; ++i) {
         coords[i] = mesh.node(nodes[i]).coords();
     }
     
-    // 计算 B 矩阵和面积
-    DenseMatrix B(3, 6);  // 3 (ε分量) x 6 (u_x1, u_y1, u_x2, u_y2, u_x3, u_y3)
-    Real area = compute_tri3_B_matrix(coords, B);
+    // 创建形函数对象
+    auto shape_func = shape::ShapeFunctionFactory::create(elem_type);
     
-    if (area < 1e-15) {
-        FEM_WARN("Elasticity2D: degenerate element (area near zero)");
-        return;
+    // 获取高斯积分点（阶数2：精确积分线性应变）
+    std::vector<Vec3> gauss_points;
+    std::vector<Real> weights;
+    shape_func->getGaussPoints(2, gauss_points, weights);
+    
+    // 初始化单元矩阵
+    Index n_dofs = n_nodes * 2;  // 2D: u_x, u_y per node
+    Ke.resize(n_dofs, n_dofs);
+    Ke.zero();
+    Fe.resize(n_dofs);
+    for (Index i = 0; i < n_dofs; ++i) {
+        Fe[i] = 0.0;
     }
     
-    // 计算刚度矩阵: Ke = ∫_Ω B^T D B dΩ = B^T D B * area
-    DenseMatrix DB = D_ * B;  // 3x6
-    DenseMatrix Bt = B.transpose();  // 6x3
-    
-    DenseMatrix temp = Bt * DB;  // 6x6
-    Ke = temp * area;  // 6x6
-    
-    // 载荷向量 (暂不考虑体力)
-    for (std::size_t i = 0; i < Fe.size(); ++i) {
-        Fe[i] = 0.0;
+    // 高斯积分循环
+    for (size_t gp = 0; gp < gauss_points.size(); ++gp) {
+        const Vec3& xi = gauss_points[gp];
+        Real w = weights[gp];
+        
+        // 计算形函数导数（物理坐标系）
+        DenseMatrix dN_dx;  // (n_nodes x 2)
+        shape_func->computePhysicalDerivatives(xi, coords, dN_dx);
+        
+        // 计算雅可比行列式
+        DenseMatrix J = shape_func->computeJacobian(xi, coords);
+        Real det_J = J(0, 0) * J(1, 1) - J(0, 1) * J(1, 0);
+        
+        if (std::abs(det_J) < 1e-15) {
+            FEM_WARN("Elasticity2D: degenerate element (det(J) near zero)");
+            continue;
+        }
+        
+        // 构造 B 矩阵 (3 x n_dofs)
+        // B = [[dN1/dx,  0,       dN2/dx, 0,       ... ],
+        //      [0,       dN1/dy,  0,      dN2/dy,  ... ],
+        //      [dN1/dy,  dN1/dx,  dN2/dy, dN2/dx,  ... ]]
+        DenseMatrix B(3, n_dofs, 0.0);
+        for (Index i = 0; i < n_nodes; ++i) {
+            Index col_u = i * 2;      // u_x 列
+            Index col_v = i * 2 + 1;  // u_y 列
+            
+            B(0, col_u) = dN_dx(i, 0);  // ε_xx = ∂u_x/∂x
+            B(1, col_v) = dN_dx(i, 1);  // ε_yy = ∂u_y/∂y
+            B(2, col_u) = dN_dx(i, 1);  // γ_xy = ∂u_x/∂y + ∂u_y/∂x
+            B(2, col_v) = dN_dx(i, 0);
+        }
+        
+        // 计算刚度矩阵贡献: Ke += B^T * D * B * det(J) * w
+        DenseMatrix DB = D_ * B;       // (3 x n_dofs)
+        DenseMatrix Bt = B.transpose(); // (n_dofs x 3)
+        DenseMatrix BtDB = Bt * DB;     // (n_dofs x n_dofs)
+        
+        Real factor = det_J * w;
+        for (Index i = 0; i < n_dofs; ++i) {
+            for (Index j = 0; j < n_dofs; ++j) {
+                Ke(i, j) += BtDB(i, j) * factor;
+            }
+        }
+        
+        // 体力载荷 (暂不实现)
+        // Fe += N^T * f * det(J) * w
     }
 }
 
 void Elasticity2D::compute_stiffness(Index elem_id, const Mesh& mesh,
                                     DenseMatrix& Ke) const {
-    const Element& elem = mesh.element(elem_id);
-    
-    if (elem.type() != ElementType::Tri3) {
-        return;
-    }
-    
-    const auto& nodes = elem.nodes();
-    Vec3 coords[3];
-    for (int i = 0; i < 3; ++i) {
-        coords[i] = mesh.node(nodes[i]).coords();
-    }
-    
-    DenseMatrix B(3, 6);
-    Real area = compute_tri3_B_matrix(coords, B);
-    
-    if (area < 1e-15) return;
-    
-    DenseMatrix DB = D_ * B;
-    DenseMatrix Bt = B.transpose();
-    
-    Ke = Bt * DB * area;
+    Vector Fe;  // 占位
+    compute_element(elem_id, mesh, Ke, Fe);
 }
 
 Real Elasticity2D::compute_tri3_B_matrix(const Vec3* coords, DenseMatrix& B) const {
+    // 保留向后兼容（已弃用）
     Real x0 = coords[0][0], y0 = coords[0][1];
     Real x1 = coords[1][0], y1 = coords[1][1];
     Real x2 = coords[2][0], y2 = coords[2][1];
@@ -119,10 +150,6 @@ Real Elasticity2D::compute_tri3_B_matrix(const Vec3* coords, DenseMatrix& B) con
     dN_dy[2] = (x1 - x0) / (2.0 * area);
     
     // 构造 B 矩阵 (3x6)
-    // B = [[dN1/dx,  0,       dN2/dx, 0,       dN3/dx, 0      ],
-    //      [0,       dN1/dy,  0,      dN2/dy,  0,      dN3/dy ],
-    //      [dN1/dy,  dN1/dx,  dN2/dy, dN2/dx,  dN3/dy, dN3/dx]]
-    
     B.zero();
     
     for (int i = 0; i < 3; ++i) {
