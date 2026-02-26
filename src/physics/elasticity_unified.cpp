@@ -1,57 +1,68 @@
 #include "physics/elasticity_unified.h"
+#include "material/isotropic_elastic.h"
 #include "core/logger.h"
 #include <cmath>
 
 namespace fem {
 namespace physics {
 
-void ElasticityUnified::compute_D_matrix_2D() {
-    D_ = DenseMatrix(3, 3, 0.0);
-    
-    if (plane_type_ == PlaneType::PlaneStress) {
-        // 平面应力
-        Real factor = E_ / (1.0 - nu_ * nu_);
-        D_(0, 0) = factor;
-        D_(0, 1) = factor * nu_;
-        D_(1, 0) = factor * nu_;
-        D_(1, 1) = factor;
-        D_(2, 2) = factor * (1.0 - nu_) / 2.0;
+// ═══════════════════════════════════════════════════════════
+// 构造函数实现
+// ═══════════════════════════════════════════════════════════
+
+ElasticityUnified::ElasticityUnified(Real youngs_modulus, Real poissons_ratio,
+                                     PlaneType plane_type)
+    : own_material_(true), dimension_(2), plane_type_(plane_type) {
+    // 内部创建 2D 各向同性弹性材料
+    bool plane_stress = (plane_type == PlaneType::PlaneStress);
+    material_ = new constitutive::IsotropicElastic(
+        youngs_modulus, 
+        poissons_ratio, 
+        2,  // dimension
+        plane_stress
+    );
+}
+
+ElasticityUnified::ElasticityUnified(Real youngs_modulus, Real poissons_ratio, bool use_3d)
+    : own_material_(true), dimension_(use_3d ? 3 : 2), plane_type_(PlaneType::PlaneStress) {
+    // 内部创建 2D 或 3D 各向同性弹性材料
+    if (use_3d) {
+        material_ = new constitutive::IsotropicElastic(
+            youngs_modulus, 
+            poissons_ratio, 
+            3  // dimension
+        );
     } else {
-        // 平面应变
-        Real factor = E_ / ((1.0 + nu_) * (1.0 - 2.0 * nu_));
-        D_(0, 0) = factor * (1.0 - nu_);
-        D_(0, 1) = factor * nu_;
-        D_(1, 0) = factor * nu_;
-        D_(1, 1) = factor * (1.0 - nu_);
-        D_(2, 2) = factor * (1.0 - 2.0 * nu_) / 2.0;
+        material_ = new constitutive::IsotropicElastic(
+            youngs_modulus, 
+            poissons_ratio, 
+            2,     // dimension
+            true   // plane_stress
+        );
     }
 }
 
-void ElasticityUnified::compute_D_matrix_3D() {
-    D_ = DenseMatrix(6, 6, 0.0);
-    
-    Real factor = E_ / ((1.0 + nu_) * (1.0 - 2.0 * nu_));
-    Real lambda = factor * nu_;
-    Real mu = factor * (1.0 - 2.0 * nu_) / 2.0;
-    
-    // 对角块 (正应力)
-    D_(0, 0) = factor * (1.0 - nu_);
-    D_(1, 1) = factor * (1.0 - nu_);
-    D_(2, 2) = factor * (1.0 - nu_);
-    
-    // 泊松耦合
-    D_(0, 1) = lambda;
-    D_(0, 2) = lambda;
-    D_(1, 0) = lambda;
-    D_(1, 2) = lambda;
-    D_(2, 0) = lambda;
-    D_(2, 1) = lambda;
-    
-    // 剪切块
-    D_(3, 3) = mu;  // τ_yz
-    D_(4, 4) = mu;  // τ_xz
-    D_(5, 5) = mu;  // τ_xy
+ElasticityUnified::ElasticityUnified(constitutive::Material* material, int dimension)
+    : material_(material), own_material_(false), dimension_(dimension), 
+      plane_type_(PlaneType::PlaneStress) {
+    if (!material_) {
+        FEM_ERROR("ElasticityUnified: material pointer is null");
+    }
+    if (dimension_ != 2 && dimension_ != 3) {
+        FEM_ERROR("ElasticityUnified: dimension must be 2 or 3");
+    }
 }
+
+ElasticityUnified::~ElasticityUnified() {
+    if (own_material_ && material_) {
+        delete material_;
+        material_ = nullptr;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 核心计算函数
+// ═══════════════════════════════════════════════════════════
 
 void ElasticityUnified::compute_element(Index elem_id, const Mesh& mesh,
                                        DenseMatrix& Ke, Vector& Fe) const {
@@ -70,17 +81,16 @@ void ElasticityUnified::compute_element(Index elem_id, const Mesh& mesh,
     }
     
     // 检查维度一致性
-    int dim = shape_func->dimension();
-    int dofs_per_node = dim;
+    int elem_dim = shape_func->dimension();
     
-    if (is_2d_ && dim != 2) {
-        FEM_WARN("ElasticityUnified: 2D mode but element is not 2D");
+    if (dimension_ != elem_dim) {
+        FEM_WARN("ElasticityUnified: dimension mismatch (physics: " 
+                 + std::to_string(dimension_) + ", element: " 
+                 + std::to_string(elem_dim) + ")");
         return;
     }
-    if (!is_2d_ && dim != 3) {
-        FEM_WARN("ElasticityUnified: 3D mode but element is not 3D");
-        return;
-    }
+    
+    int dofs_per_node = dimension_;
     
     // 获取高斯积分点
     std::vector<Vec3> gauss_points;
@@ -96,6 +106,9 @@ void ElasticityUnified::compute_element(Index elem_id, const Mesh& mesh,
     for (Index i = 0; i < n_dofs; ++i) {
         Fe[i] = 0.0;
     }
+    
+    // 创建状态变量（弹性材料为空，塑性材料需要）
+    constitutive::StateVariables state = material_->createState();
     
     // 高斯积分循环
     for (size_t gp = 0; gp < gauss_points.size(); ++gp) {
@@ -119,21 +132,25 @@ void ElasticityUnified::compute_element(Index elem_id, const Mesh& mesh,
         
         // 构造 B 矩阵
         DenseMatrix B;
-        if (dim == 2) {
+        if (dimension_ == 2) {
             B = build_B_matrix_2D(dN_dxyz);
         } else {
             B = build_B_matrix_3D(dN_dxyz);
         }
         
-        // 装配刚度矩阵: Ke += B^T * D * B * dV
-        // K_ij = Σ_gp B^T[strain_comp, i] * D[strain_comp, strain_comp2] * B[strain_comp2, j] * dV
+        // 获取材料切线刚度矩阵 D
+        // 注意：对于线性弹性，D 不依赖应变，但对于非线性材料可能需要当前应变状态
+        Vector strain_dummy;  // 弹性材料不需要应变信息
+        DenseMatrix D;
+        material_->computeTangent(strain_dummy, D, state);
         
-        DenseMatrix DB = D_ * B;  // D * B (strain_size × n_dofs)
+        // 装配刚度矩阵: Ke += B^T * D * B * dV
+        DenseMatrix DB = D * B;  // D * B (strain_size × n_dofs)
         
         for (Index i = 0; i < n_dofs; ++i) {
             for (Index j = 0; j < n_dofs; ++j) {
                 Real sum = 0.0;
-                Index strain_size = D_.rows();
+                Index strain_size = D.rows();
                 for (Index k = 0; k < strain_size; ++k) {
                     sum += B(k, i) * DB(k, j);
                 }
@@ -149,6 +166,55 @@ void ElasticityUnified::compute_stiffness(Index elem_id, const Mesh& mesh,
                                          DenseMatrix& Ke) const {
     Vector Fe_dummy;
     compute_element(elem_id, mesh, Ke, Fe_dummy);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 访问器实现（仅对简单构造函数有效）
+// ═══════════════════════════════════════════════════════════
+
+Real ElasticityUnified::youngs_modulus() const {
+    if (!own_material_) {
+        FEM_WARN("ElasticityUnified::youngs_modulus() called on custom material");
+        return 0.0;
+    }
+    // 内部创建的一定是 IsotropicElastic
+    auto* iso_elastic = dynamic_cast<constitutive::IsotropicElastic*>(material_);
+    if (iso_elastic) {
+        // IsotropicElastic 有参数访问接口，但我们需要从 elasticityTensor 反推
+        // 实际上 IsotropicElastic 应该提供 E() 和 nu() 访问器
+        // 这里暂时返回通过拉梅常数反推的结果
+        Real mu = iso_elastic->mu();
+        Real lambda = iso_elastic->lambda();
+        
+        // E = mu * (3*lambda + 2*mu) / (lambda + mu)
+        Real E = mu * (3.0 * lambda + 2.0 * mu) / (lambda + mu);
+        return E;
+    }
+    return 0.0;
+}
+
+Real ElasticityUnified::poissons_ratio() const {
+    if (!own_material_) {
+        FEM_WARN("ElasticityUnified::poissons_ratio() called on custom material");
+        return 0.0;
+    }
+    auto* iso_elastic = dynamic_cast<constitutive::IsotropicElastic*>(material_);
+    if (iso_elastic) {
+        Real mu = iso_elastic->mu();
+        Real lambda = iso_elastic->lambda();
+        
+        // nu = lambda / (2 * (lambda + mu))
+        Real nu = lambda / (2.0 * (lambda + mu));
+        return nu;
+    }
+    return 0.0;
+}
+
+PlaneType ElasticityUnified::plane_type() const {
+    if (dimension_ != 2) {
+        FEM_WARN("ElasticityUnified::plane_type() called on 3D physics");
+    }
+    return plane_type_;
 }
 
 } // namespace physics

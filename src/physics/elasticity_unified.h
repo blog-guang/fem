@@ -7,18 +7,24 @@
  * - 2D: 平面应力/平面应变 (Tri3, Quad4)
  * - 3D: 通用 3D 弹性 (Tet4, Brick8)
  * 
- * 使用形函数系统进行通用装配。
+ * 特性：
+ * - 集成材料本构模型系统 (Material)
+ * - 无硬编码 D 矩阵，使用 Material::computeTangent()
+ * - 支持弹性、塑性、损伤等任意材料模型
+ * - 使用形函数系统进行通用装配
  * 
  * 使用方法:
  * ```cpp
- * // 2D
+ * // 方式 1: 简单接口（内部创建各向同性弹性材料）
  * ElasticityUnified elast_2d(E, nu, PlaneType::PlaneStress);
- * Assembler assembler(model, 2);  // 矢量场 (u_x, u_y)
+ * ElasticityUnified elast_3d(E, nu, true);  // 3D 模式
  * 
- * // 3D
- * ElasticityUnified elast_3d(E, nu);
- * Assembler assembler(model, 3);  // 矢量场 (u_x, u_y, u_z)
+ * // 方式 2: 高级接口（使用自定义材料）
+ * auto* material = new J2Plasticity(E, nu, sigma_y, H);  // 塑性材料
+ * ElasticityUnified elast_custom(material, 3);  // 3D
  * 
+ * // 装配
+ * Assembler assembler(model, dim);
  * assembler.assemble([&](Index id, const Mesh& mesh, DenseMatrix& Ke, Vector& Fe) {
  *     elast.compute_element(id, mesh, Ke, Fe);
  * });
@@ -28,6 +34,8 @@
 #pragma once
 
 #include "physics/physics_base.h"
+#include "material/material.h"
+#include <memory>
 
 namespace fem {
 namespace physics {
@@ -46,46 +54,72 @@ enum class PlaneType {
  * 特性：
  * - 自动识别 2D/3D
  * - 支持所有单元类型
+ * - 集成材料本构模型系统
  * - 使用形函数系统
  * - 高斯积分精确计算
- * - 构造 B 矩阵和本构矩阵 D
+ * - 构造 B 矩阵，通过 Material 获取 D 矩阵
  */
 class ElasticityUnified : public PhysicsBase {
 public:
+    // ═══════════════════════════════════════════════════════════
+    // 构造函数 - 简单接口（内部创建各向同性弹性材料）
+    // ═══════════════════════════════════════════════════════════
+    
     /**
-     * 构造函数 (2D)
+     * 构造函数 (2D - 简单接口)
+     * 内部创建 IsotropicElastic 材料
+     * 
      * @param youngs_modulus 杨氏模量 E
      * @param poissons_ratio 泊松比 ν
      * @param plane_type 平面类型 (默认平面应力)
      */
     ElasticityUnified(Real youngs_modulus, Real poissons_ratio,
-                     PlaneType plane_type = PlaneType::PlaneStress)
-        : E_(youngs_modulus), nu_(poissons_ratio), 
-          is_2d_(true), plane_type_(plane_type) {
-        compute_D_matrix_2D();
-    }
+                     PlaneType plane_type = PlaneType::PlaneStress);
     
     /**
-     * 构造函数 (3D - 通过标签区分)
+     * 构造函数 (3D - 简单接口)
+     * 内部创建 IsotropicElastic 材料
+     * 
      * @param youngs_modulus 杨氏模量 E
      * @param poissons_ratio 泊松比 ν
      * @param use_3d 设为 true 以启用 3D 模式
      */
-    ElasticityUnified(Real youngs_modulus, Real poissons_ratio, bool use_3d)
-        : E_(youngs_modulus), nu_(poissons_ratio), is_2d_(!use_3d) {
-        if (use_3d) {
-            compute_D_matrix_3D();
-        } else {
-            plane_type_ = PlaneType::PlaneStress;
-            compute_D_matrix_2D();
-        }
-    }
+    ElasticityUnified(Real youngs_modulus, Real poissons_ratio, bool use_3d);
 
+    // ═══════════════════════════════════════════════════════════
+    // 构造函数 - 高级接口（使用自定义材料）
+    // ═══════════════════════════════════════════════════════════
+    
+    /**
+     * 构造函数 (高级接口 - 使用自定义材料)
+     * 
+     * @param material 材料本构模型指针（外部管理生命周期）
+     * @param dimension 维度 (2 或 3)
+     * 
+     * 注意：
+     * - material 指针由外部管理，ElasticityUnified 不拥有所有权
+     * - material 必须在 ElasticityUnified 对象生命周期内有效
+     * - 对于 2D 材料，确保 dimension 参数与材料构造时一致
+     */
+    ElasticityUnified(constitutive::Material* material, int dimension);
+    
+    /**
+     * 析构函数
+     * 如果内部创建了材料对象，会自动释放
+     */
+    ~ElasticityUnified();
+
+    // ═══════════════════════════════════════════════════════════
+    // 核心接口
+    // ═══════════════════════════════════════════════════════════
+    
     /**
      * 计算单元刚度矩阵和载荷向量
      * 
      * Ke = ∫_Ω B^T D B dΩ
      * Fe = 0 (体力暂不考虑)
+     * 
+     * D 矩阵通过 material_->computeTangent() 获取
      * 
      * @param elem_id 单元ID
      * @param mesh 网格引用
@@ -101,71 +135,27 @@ public:
     void compute_stiffness(Index elem_id, const Mesh& mesh,
                           DenseMatrix& Ke) const;
 
-    // ── 参数设置 ──
-    void set_youngs_modulus(Real E) {
-        E_ = E;
-        if (is_2d_) {
-            compute_D_matrix_2D();
-        } else {
-            compute_D_matrix_3D();
-        }
-    }
-
-    void set_poissons_ratio(Real nu) {
-        nu_ = nu;
-        if (is_2d_) {
-            compute_D_matrix_2D();
-        } else {
-            compute_D_matrix_3D();
-        }
-    }
-
-    void set_plane_type(PlaneType type) {
-        plane_type_ = type;
-        if (is_2d_) {
-            compute_D_matrix_2D();
-        }
-    }
-
-    Real youngs_modulus() const { return E_; }
-    Real poissons_ratio() const { return nu_; }
-    PlaneType plane_type() const { return plane_type_; }
-    bool is_2d() const { return is_2d_; }
-
-private:
-    Real E_;                ///< 杨氏模量
-    Real nu_;               ///< 泊松比
-    bool is_2d_;            ///< 2D 模式开关
-    PlaneType plane_type_;  ///< 平面类型 (仅 2D)
-
-    DenseMatrix D_;         ///< 本构矩阵 (3x3 for 2D, 6x6 for 3D)
-
-    /**
-     * 计算 2D 本构矩阵 D
-     * 
-     * 平面应力:
-     * D = E/(1-ν²) * [[1,   ν,   0         ],
-     *                  [ν,   1,   0         ],
-     *                  [0,   0,   (1-ν)/2 ]]
-     * 
-     * 平面应变:
-     * D = E/((1+ν)(1-2ν)) * [[1-ν,  ν,     0           ],
-     *                         [ν,    1-ν,   0           ],
-     *                         [0,    0,     (1-2ν)/2  ]]
-     */
-    void compute_D_matrix_2D();
+    // ═══════════════════════════════════════════════════════════
+    // 访问器
+    // ═══════════════════════════════════════════════════════════
+    
+    int dimension() const { return dimension_; }
+    bool is_2d() const { return dimension_ == 2; }
+    const constitutive::Material* material() const { return material_; }
     
     /**
-     * 计算 3D 本构矩阵 D
-     * 
-     * D = E/((1+ν)(1-2ν)) * [[1-ν,  ν,    ν,    0,         0,         0        ],
-     *                         [ν,    1-ν,  ν,    0,         0,         0        ],
-     *                         [ν,    ν,    1-ν,  0,         0,         0        ],
-     *                         [0,    0,    0,    (1-2ν)/2,  0,         0        ],
-     *                         [0,    0,    0,    0,         (1-2ν)/2,  0        ],
-     *                         [0,    0,    0,    0,         0,         (1-2ν)/2 ]]
+     * 获取材料参数（仅对简单构造函数有效）
+     * 如果使用自定义材料，这些函数返回默认值或抛出警告
      */
-    void compute_D_matrix_3D();
+    Real youngs_modulus() const;
+    Real poissons_ratio() const;
+    PlaneType plane_type() const;
+
+private:
+    constitutive::Material* material_;  ///< 材料本构模型指针
+    bool own_material_;                 ///< 是否拥有材料对象（内部创建的需要释放）
+    int dimension_;                     ///< 维度 (2 或 3)
+    PlaneType plane_type_;              ///< 平面类型（仅 2D 简单构造函数有效）
 };
 
 } // namespace physics

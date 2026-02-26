@@ -23,3 +23,8 @@ target_include_directories(test_unified_heat PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_executable(test_unified_elasticity test_unified_elasticity.cpp)
 target_link_libraries(test_unified_elasticity PRIVATE fem)
 target_include_directories(test_unified_elasticity PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# ElasticityUnified 与自定义材料集成示例
+add_executable(test_elasticity_with_plasticity test_elasticity_with_plasticity.cpp)
+target_link_libraries(test_elasticity_with_plasticity PRIVATE fem)
+target_include_directories(test_elasticity_with_plasticity PRIVATE ${CMAKE_SOURCE_DIR}/src)
