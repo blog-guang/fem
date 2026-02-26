@@ -24,12 +24,12 @@ int main() {
     std::cout << "=== ElasticityUnified with Custom Materials ===\n\n";
     
     // ═══════════════════════════════════════════════════════════
-    // 示例 1: 简单接口（内部创建各向同性弹性材料）
+    // 示例 1: 2D 平面应力弹性材料
     // ═══════════════════════════════════════════════════════════
     
-    std::cout << "Example 1: Simple interface (IsotropicElastic internal)\n";
+    std::cout << "Example 1: 2D Plane Stress (IsotropicElastic)\n";
     {
-        Model model("simple");
+        Model model("plane_stress");
         int mat_id = model.add_material("steel");
         int mesh_id = model.add_mesh("mesh", mat_id);
         Mesh& mesh = model.mesh(mesh_id);
@@ -39,13 +39,15 @@ int main() {
         Real E = 200e9;   // 200 GPa
         Real nu = 0.3;
         
-        // 简单构造：内部创建 IsotropicElastic
-        ElasticityUnified physics(E, nu, PlaneType::PlaneStress);
+        // 创建 2D 平面应力材料
+        IsotropicElastic material(E, nu, 2, true);  // 2D, plane_stress
+        ElasticityUnified physics(&material, 2);
         
-        std::cout << "  E  = " << physics.youngs_modulus() / 1e9 << " GPa\n";
-        std::cout << "  nu = " << physics.poissons_ratio() << "\n";
-        std::cout << "  Plane type: " << (physics.plane_type() == PlaneType::PlaneStress 
-                                           ? "PlaneStress" : "PlaneStrain") << "\n";
+        std::cout << "  Material: IsotropicElastic\n";
+        std::cout << "  E  = " << E / 1e9 << " GPa\n";
+        std::cout << "  nu = " << nu << "\n";
+        std::cout << "  mu = " << material.mu() / 1e9 << " GPa\n";
+        std::cout << "  Dimension: " << physics.dimension() << "D\n";
         
         // 装配
         Assembler assembler(model, 2);

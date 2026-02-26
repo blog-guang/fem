@@ -10,12 +10,14 @@
 
 #include <gtest/gtest.h>
 #include "physics/elasticity_unified.h"
+#include "material/isotropic_elastic.h"
 #include "mesh/mesh.h"
 #include "mesh/mesh_generator.h"
 #include "shape/shape_function_factory.h"
 
 using namespace fem;
 using namespace fem::physics;
+using namespace fem::constitutive;
 
 // ═══════════════════════════════════════════════════════════════
 // 2D Elasticity 集成测试
@@ -23,7 +25,7 @@ using namespace fem::physics;
 
 TEST(ShapeIntegrationTest, ElasticityUnified_Tri3) {
     // 创建简单三角形网格
-    Material dummy_mat(0, "dummy");
+    fem::Material dummy_mat(0, "dummy");
     Mesh mesh("test_tri3", &dummy_mat);
     mesh.add_node(Vec3{0.0, 0.0, 0.0});
     mesh.add_node(Vec3{1.0, 0.0, 0.0});
@@ -34,7 +36,8 @@ TEST(ShapeIntegrationTest, ElasticityUnified_Tri3) {
     // 弹性参数
     Real E = 200e9;   // 200 GPa
     Real nu = 0.3;
-    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
+    IsotropicElastic material(E, nu, 2, true);  // 2D, plane_stress
+    ElasticityUnified elast(&material, 2);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -68,7 +71,7 @@ TEST(ShapeIntegrationTest, ElasticityUnified_Tri3) {
 
 TEST(ShapeIntegrationTest, ElasticityUnified_Quad4) {
     // 创建四边形网格
-    Material dummy_mat(0, "dummy");
+    fem::Material dummy_mat(0, "dummy");
     Mesh mesh("test_quad4", &dummy_mat);
     mesh.add_node(Vec3{0.0, 0.0, 0.0});
     mesh.add_node(Vec3{1.0, 0.0, 0.0});
@@ -80,7 +83,8 @@ TEST(ShapeIntegrationTest, ElasticityUnified_Quad4) {
     // 弹性参数
     Real E = 200e9;
     Real nu = 0.3;
-    ElasticityUnified elast(E, nu, PlaneType::PlaneStrain);
+    IsotropicElastic material(E, nu, 2, false);  // 2D, plane_strain
+    ElasticityUnified elast(&material, 2);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -111,7 +115,7 @@ TEST(ShapeIntegrationTest, ElasticityUnified_Quad4) {
 
 TEST(ShapeIntegrationTest, ElasticityUnified3D_Tet4) {
     // 创建四面体网格
-    Material dummy_mat(0, "dummy");
+    fem::Material dummy_mat(0, "dummy");
     Mesh mesh("test_tet4", &dummy_mat);
     mesh.add_node(Vec3{0.0, 0.0, 0.0});
     mesh.add_node(Vec3{1.0, 0.0, 0.0});
@@ -123,7 +127,8 @@ TEST(ShapeIntegrationTest, ElasticityUnified3D_Tet4) {
     // 弹性参数
     Real E = 200e9;
     Real nu = 0.3;
-    ElasticityUnified elast(E, nu, true);
+    IsotropicElastic material(E, nu, 3);  // 3D
+    ElasticityUnified elast(&material, 3);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -152,7 +157,7 @@ TEST(ShapeIntegrationTest, ElasticityUnified3D_Tet4) {
 
 TEST(ShapeIntegrationTest, ElasticityUnified3D_Brick8) {
     // 创建六面体网格 (单位立方体)
-    Material dummy_mat(0, "dummy");
+    fem::Material dummy_mat(0, "dummy");
     Mesh mesh("test_brick8", &dummy_mat);
     mesh.add_node(Vec3{0.0, 0.0, 0.0});  // 0
     mesh.add_node(Vec3{1.0, 0.0, 0.0});  // 1
@@ -169,7 +174,8 @@ TEST(ShapeIntegrationTest, ElasticityUnified3D_Brick8) {
     // 弹性参数
     Real E = 200e9;
     Real nu = 0.3;
-    ElasticityUnified elast(E, nu, true);
+    IsotropicElastic material(E, nu, 3);  // 3D
+    ElasticityUnified elast(&material, 3);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -201,7 +207,7 @@ TEST(ShapeIntegrationTest, ElasticityUnified3D_Brick8) {
 TEST(ShapeIntegrationTest, Tri3_BackwardCompatibility) {
     // 验证新实现（形函数）与旧实现（硬编码）结果一致
     
-    Material dummy_mat(0, "dummy");
+    fem::Material dummy_mat(0, "dummy");
     Mesh mesh("test_compat", &dummy_mat);
     mesh.add_node(Vec3{0.0, 0.0, 0.0});
     mesh.add_node(Vec3{2.0, 0.0, 0.0});
@@ -211,7 +217,8 @@ TEST(ShapeIntegrationTest, Tri3_BackwardCompatibility) {
     
     Real E = 100.0;
     Real nu = 0.25;
-    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
+    IsotropicElastic material(E, nu, 2, true);  // 2D, plane_stress
+    ElasticityUnified elast(&material, 2);
     
     // 新实现（使用形函数）
     DenseMatrix Ke_new;
@@ -239,7 +246,7 @@ TEST(ShapeIntegrationTest, Tri3_BackwardCompatibility) {
 TEST(ShapeIntegrationTest, RigidBodyMotion_Tri3) {
     // 刚体平移应该产生零应变 → 零内力
     
-    Material dummy_mat(0, "dummy");
+    fem::Material dummy_mat(0, "dummy");
     Mesh mesh("test_rigid", &dummy_mat);
     mesh.add_node(Vec3{0.0, 0.0, 0.0});
     mesh.add_node(Vec3{1.0, 0.0, 0.0});
@@ -249,7 +256,8 @@ TEST(ShapeIntegrationTest, RigidBodyMotion_Tri3) {
     
     Real E = 200e9;
     Real nu = 0.3;
-    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
+    IsotropicElastic material(E, nu, 2, true);  // 2D, plane_stress
+    ElasticityUnified elast(&material, 2);
     
     DenseMatrix Ke;
     Vector Fe;

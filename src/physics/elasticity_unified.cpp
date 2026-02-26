@@ -1,5 +1,4 @@
 #include "physics/elasticity_unified.h"
-#include "material/isotropic_elastic.h"
 #include "core/logger.h"
 #include <cmath>
 
@@ -10,53 +9,13 @@ namespace physics {
 // 构造函数实现
 // ═══════════════════════════════════════════════════════════
 
-ElasticityUnified::ElasticityUnified(Real youngs_modulus, Real poissons_ratio,
-                                     PlaneType plane_type)
-    : own_material_(true), dimension_(2), plane_type_(plane_type) {
-    // 内部创建 2D 各向同性弹性材料
-    bool plane_stress = (plane_type == PlaneType::PlaneStress);
-    material_ = new constitutive::IsotropicElastic(
-        youngs_modulus, 
-        poissons_ratio, 
-        2,  // dimension
-        plane_stress
-    );
-}
-
-ElasticityUnified::ElasticityUnified(Real youngs_modulus, Real poissons_ratio, bool use_3d)
-    : own_material_(true), dimension_(use_3d ? 3 : 2), plane_type_(PlaneType::PlaneStress) {
-    // 内部创建 2D 或 3D 各向同性弹性材料
-    if (use_3d) {
-        material_ = new constitutive::IsotropicElastic(
-            youngs_modulus, 
-            poissons_ratio, 
-            3  // dimension
-        );
-    } else {
-        material_ = new constitutive::IsotropicElastic(
-            youngs_modulus, 
-            poissons_ratio, 
-            2,     // dimension
-            true   // plane_stress
-        );
-    }
-}
-
 ElasticityUnified::ElasticityUnified(constitutive::Material* material, int dimension)
-    : material_(material), own_material_(false), dimension_(dimension), 
-      plane_type_(PlaneType::PlaneStress) {
+    : material_(material), dimension_(dimension) {
     if (!material_) {
         FEM_ERROR("ElasticityUnified: material pointer is null");
     }
     if (dimension_ != 2 && dimension_ != 3) {
         FEM_ERROR("ElasticityUnified: dimension must be 2 or 3");
-    }
-}
-
-ElasticityUnified::~ElasticityUnified() {
-    if (own_material_ && material_) {
-        delete material_;
-        material_ = nullptr;
     }
 }
 
@@ -166,55 +125,6 @@ void ElasticityUnified::compute_stiffness(Index elem_id, const Mesh& mesh,
                                          DenseMatrix& Ke) const {
     Vector Fe_dummy;
     compute_element(elem_id, mesh, Ke, Fe_dummy);
-}
-
-// ═══════════════════════════════════════════════════════════
-// 访问器实现（仅对简单构造函数有效）
-// ═══════════════════════════════════════════════════════════
-
-Real ElasticityUnified::youngs_modulus() const {
-    if (!own_material_) {
-        FEM_WARN("ElasticityUnified::youngs_modulus() called on custom material");
-        return 0.0;
-    }
-    // 内部创建的一定是 IsotropicElastic
-    auto* iso_elastic = dynamic_cast<constitutive::IsotropicElastic*>(material_);
-    if (iso_elastic) {
-        // IsotropicElastic 有参数访问接口，但我们需要从 elasticityTensor 反推
-        // 实际上 IsotropicElastic 应该提供 E() 和 nu() 访问器
-        // 这里暂时返回通过拉梅常数反推的结果
-        Real mu = iso_elastic->mu();
-        Real lambda = iso_elastic->lambda();
-        
-        // E = mu * (3*lambda + 2*mu) / (lambda + mu)
-        Real E = mu * (3.0 * lambda + 2.0 * mu) / (lambda + mu);
-        return E;
-    }
-    return 0.0;
-}
-
-Real ElasticityUnified::poissons_ratio() const {
-    if (!own_material_) {
-        FEM_WARN("ElasticityUnified::poissons_ratio() called on custom material");
-        return 0.0;
-    }
-    auto* iso_elastic = dynamic_cast<constitutive::IsotropicElastic*>(material_);
-    if (iso_elastic) {
-        Real mu = iso_elastic->mu();
-        Real lambda = iso_elastic->lambda();
-        
-        // nu = lambda / (2 * (lambda + mu))
-        Real nu = lambda / (2.0 * (lambda + mu));
-        return nu;
-    }
-    return 0.0;
-}
-
-PlaneType ElasticityUnified::plane_type() const {
-    if (dimension_ != 2) {
-        FEM_WARN("ElasticityUnified::plane_type() called on 3D physics");
-    }
-    return plane_type_;
 }
 
 } // namespace physics

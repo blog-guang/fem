@@ -15,18 +15,18 @@
  * 
  * 使用方法:
  * ```cpp
- * // 方式 1: 简单接口（内部创建各向同性弹性材料）
- * ElasticityUnified elast_2d(E, nu, PlaneType::PlaneStress);
- * ElasticityUnified elast_3d(E, nu, true);  // 3D 模式
+ * // 创建材料
+ * auto* material = new IsotropicElastic(E, nu, 2, true);  // 2D, plane_stress
+ * // 或
+ * auto* material = new J2Plasticity(E, nu, sigma_y, H, 3);  // 3D 塑性
  * 
- * // 方式 2: 高级接口（使用自定义材料）
- * auto* material = new J2Plasticity(E, nu, sigma_y, H);  // 塑性材料
- * ElasticityUnified elast_custom(material, 3);  // 3D
+ * // 创建 physics 对象
+ * ElasticityUnified physics(material, 2);  // 2D
  * 
  * // 装配
  * Assembler assembler(model, dim);
  * assembler.assemble([&](Index id, const Mesh& mesh, DenseMatrix& Ke, Vector& Fe) {
- *     elast.compute_element(id, mesh, Ke, Fe);
+ *     physics.compute_element(id, mesh, Ke, Fe);
  * });
  * ```
  */
@@ -35,18 +35,9 @@
 
 #include "physics/physics_base.h"
 #include "material/material.h"
-#include <memory>
 
 namespace fem {
 namespace physics {
-
-/**
- * 平面问题类型 (2D)
- */
-enum class PlaneType {
-    PlaneStress,   ///< 平面应力 (薄板)
-    PlaneStrain    ///< 平面应变 (厚板)
-};
 
 /**
  * 统一的弹性力学物理模块
@@ -61,37 +52,8 @@ enum class PlaneType {
  */
 class ElasticityUnified : public PhysicsBase {
 public:
-    // ═══════════════════════════════════════════════════════════
-    // 构造函数 - 简单接口（内部创建各向同性弹性材料）
-    // ═══════════════════════════════════════════════════════════
-    
     /**
-     * 构造函数 (2D - 简单接口)
-     * 内部创建 IsotropicElastic 材料
-     * 
-     * @param youngs_modulus 杨氏模量 E
-     * @param poissons_ratio 泊松比 ν
-     * @param plane_type 平面类型 (默认平面应力)
-     */
-    ElasticityUnified(Real youngs_modulus, Real poissons_ratio,
-                     PlaneType plane_type = PlaneType::PlaneStress);
-    
-    /**
-     * 构造函数 (3D - 简单接口)
-     * 内部创建 IsotropicElastic 材料
-     * 
-     * @param youngs_modulus 杨氏模量 E
-     * @param poissons_ratio 泊松比 ν
-     * @param use_3d 设为 true 以启用 3D 模式
-     */
-    ElasticityUnified(Real youngs_modulus, Real poissons_ratio, bool use_3d);
-
-    // ═══════════════════════════════════════════════════════════
-    // 构造函数 - 高级接口（使用自定义材料）
-    // ═══════════════════════════════════════════════════════════
-    
-    /**
-     * 构造函数 (高级接口 - 使用自定义材料)
+     * 构造函数（使用自定义材料）
      * 
      * @param material 材料本构模型指针（外部管理生命周期）
      * @param dimension 维度 (2 或 3)
@@ -100,19 +62,25 @@ public:
      * - material 指针由外部管理，ElasticityUnified 不拥有所有权
      * - material 必须在 ElasticityUnified 对象生命周期内有效
      * - 对于 2D 材料，确保 dimension 参数与材料构造时一致
+     * 
+     * 示例：
+     * ```cpp
+     * // 2D 平面应力
+     * auto* mat = new IsotropicElastic(E, nu, 2, true);
+     * ElasticityUnified physics(mat, 2);
+     * 
+     * // 3D 塑性
+     * auto* mat = new J2Plasticity(E, nu, sigma_y, H, 3);
+     * ElasticityUnified physics(mat, 3);
+     * ```
      */
     ElasticityUnified(constitutive::Material* material, int dimension);
     
     /**
      * 析构函数
-     * 如果内部创建了材料对象，会自动释放
      */
-    ~ElasticityUnified();
+    ~ElasticityUnified() = default;
 
-    // ═══════════════════════════════════════════════════════════
-    // 核心接口
-    // ═══════════════════════════════════════════════════════════
-    
     /**
      * 计算单元刚度矩阵和载荷向量
      * 
@@ -135,27 +103,24 @@ public:
     void compute_stiffness(Index elem_id, const Mesh& mesh,
                           DenseMatrix& Ke) const;
 
-    // ═══════════════════════════════════════════════════════════
-    // 访问器
-    // ═══════════════════════════════════════════════════════════
-    
+    /**
+     * 获取维度
+     */
     int dimension() const { return dimension_; }
-    bool is_2d() const { return dimension_ == 2; }
-    const constitutive::Material* material() const { return material_; }
     
     /**
-     * 获取材料参数（仅对简单构造函数有效）
-     * 如果使用自定义材料，这些函数返回默认值或抛出警告
+     * 是否为 2D
      */
-    Real youngs_modulus() const;
-    Real poissons_ratio() const;
-    PlaneType plane_type() const;
+    bool is_2d() const { return dimension_ == 2; }
+    
+    /**
+     * 获取材料指针
+     */
+    const constitutive::Material* material() const { return material_; }
 
 private:
     constitutive::Material* material_;  ///< 材料本构模型指针
-    bool own_material_;                 ///< 是否拥有材料对象（内部创建的需要释放）
     int dimension_;                     ///< 维度 (2 或 3)
-    PlaneType plane_type_;              ///< 平面类型（仅 2D 简单构造函数有效）
 };
 
 } // namespace physics

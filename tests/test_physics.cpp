@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 #include "physics/heat_unified.h"
 #include "physics/elasticity_unified.h"
+#include "material/isotropic_elastic.h"
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 
 using namespace fem;
 using namespace fem::physics;
+using namespace fem::constitutive;
 
 // ═══ HeatConduction Tests ═══
 TEST(HeatConductionTest, Construction) {
@@ -49,11 +51,15 @@ TEST(HeatConductionTest, SimpleElement) {
 
 // ═══ Elasticity2D Tests ═══
 TEST(Elasticity2DTest, Construction) {
-    ElasticityUnified elast(1000.0, 0.3, PlaneType::PlaneStress);
+    Real E = 1000.0;
+    Real nu = 0.3;
     
-    EXPECT_DOUBLE_EQ(elast.youngs_modulus(), 1000.0);
-    EXPECT_DOUBLE_EQ(elast.poissons_ratio(), 0.3);
-    EXPECT_EQ(elast.plane_type(), PlaneType::PlaneStress);
+    IsotropicElastic material(E, nu, 2, true);  // 2D, plane_stress
+    ElasticityUnified elast(&material, 2);
+    
+    EXPECT_EQ(elast.dimension(), 2);
+    EXPECT_TRUE(elast.is_2d());
+    EXPECT_EQ(elast.material(), &material);
 }
 
 TEST(Elasticity2DTest, SimpleElement) {
@@ -64,7 +70,8 @@ TEST(Elasticity2DTest, SimpleElement) {
     Mesh& mesh = model.mesh(mesh_id);
     MeshGenerator::generate_unit_square_tri(2, 2, mesh);
     
-    ElasticityUnified elast(1000.0, 0.3, PlaneType::PlaneStress);
+    IsotropicElastic material(1000.0, 0.3, 2, true);  // 2D, plane_stress
+    ElasticityUnified elast(&material, 2);
     
     DenseMatrix Ke(6, 6);  // 3 节点 * 2 DOF
     Vector Fe(6);
@@ -98,7 +105,8 @@ TEST(Elasticity2DTest, MatrixPositiveDefinite) {
     Mesh& mesh = model.mesh(mesh_id);
     MeshGenerator::generate_unit_square_tri(2, 2, mesh);
     
-    ElasticityUnified elast(1000.0, 0.3, PlaneType::PlaneStress);
+    IsotropicElastic material(1000.0, 0.3, 2, true);  // 2D, plane_stress
+    ElasticityUnified elast(&material, 2);
     
     DenseMatrix Ke(6, 6);
     Vector Fe(6);

@@ -8,6 +8,7 @@
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
 #include "physics/elasticity_unified.h"
+#include "material/isotropic_elastic.h"
 #include "solver/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
@@ -15,6 +16,7 @@
 
 using namespace fem;
 using namespace fem::physics;
+using namespace fem::constitutive;
 
 int main() {
     std::cout << "=== 统一弹性力学模块测试 ===\n\n";
@@ -41,7 +43,8 @@ int main() {
         // 创建弹性力学模块
         Real E = 2.0e5;
         Real nu = 0.3;
-        ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
+        IsotropicElastic material(E, nu, 2, true);  // 2D, plane_stress
+        ElasticityUnified elast(&material, 2);
         
         // 装配
         Timer timer;
@@ -114,7 +117,8 @@ int main() {
         
         Real E = 2.0e5;
         Real nu = 0.3;
-        ElasticityUnified elast(E, nu, PlaneType::PlaneStrain);
+        IsotropicElastic material(E, nu, 2, false);  // 2D, plane_strain
+        ElasticityUnified elast(&material, 2);
         
         Timer timer;
         Assembler assembler(model, 2);
@@ -181,7 +185,8 @@ int main() {
         
         Real E = 2.0e5;
         Real nu = 0.3;
-        ElasticityUnified elast(E, nu, true);  // 3D 模式
+        IsotropicElastic material(E, nu, 3);  // 3D
+        ElasticityUnified elast(&material, 3);
         
         Timer timer;
         Assembler assembler(model, 3);  // 矢量场 (u_x, u_y, u_z)
