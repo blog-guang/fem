@@ -2,15 +2,14 @@
  * test_shape_integration.cpp - 形函数系统与物理模块集成测试
  * 
  * 验证:
- * 1. Elasticity2D 使用形函数计算（Tri3, Quad4）
- * 2. Elasticity3D 使用形函数计算（Tet4, Brick8）
+ * 1. ElasticityUnified 使用形函数计算（Tri3, Quad4）
+ * 2. ElasticityUnified 使用形函数计算（Tet4, Brick8）
  * 3. 高斯积分正确应用
  * 4. 刚度矩阵对称性和正定性
  */
 
 #include <gtest/gtest.h>
-#include "physics/elasticity_v2.h"
-#include "physics/elasticity_3d.h"
+#include "physics/elasticity_unified.h"
 #include "mesh/mesh.h"
 #include "mesh/mesh_generator.h"
 #include "shape/shape_function_factory.h"
@@ -22,7 +21,7 @@ using namespace fem::physics;
 // 2D Elasticity 集成测试
 // ═══════════════════════════════════════════════════════════════
 
-TEST(ShapeIntegrationTest, Elasticity2D_Tri3) {
+TEST(ShapeIntegrationTest, ElasticityUnified_Tri3) {
     // 创建简单三角形网格
     Material dummy_mat(0, "dummy");
     Mesh mesh("test_tri3", &dummy_mat);
@@ -35,7 +34,7 @@ TEST(ShapeIntegrationTest, Elasticity2D_Tri3) {
     // 弹性参数
     Real E = 200e9;   // 200 GPa
     Real nu = 0.3;
-    Elasticity2D elast(E, nu, PlaneType::PlaneStress);
+    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -67,7 +66,7 @@ TEST(ShapeIntegrationTest, Elasticity2D_Tri3) {
     }
 }
 
-TEST(ShapeIntegrationTest, Elasticity2D_Quad4) {
+TEST(ShapeIntegrationTest, ElasticityUnified_Quad4) {
     // 创建四边形网格
     Material dummy_mat(0, "dummy");
     Mesh mesh("test_quad4", &dummy_mat);
@@ -81,7 +80,7 @@ TEST(ShapeIntegrationTest, Elasticity2D_Quad4) {
     // 弹性参数
     Real E = 200e9;
     Real nu = 0.3;
-    Elasticity2D elast(E, nu, PlaneType::PlaneStrain);
+    ElasticityUnified elast(E, nu, PlaneType::PlaneStrain);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -92,10 +91,10 @@ TEST(ShapeIntegrationTest, Elasticity2D_Quad4) {
     EXPECT_EQ(Ke.rows(), 8);
     EXPECT_EQ(Ke.cols(), 8);
     
-    // 验证对称性
-    Real tol = 1e-6;
+    // 验证对称性（使用相对容差）
     for (int i = 0; i < 8; ++i) {
         for (int j = i + 1; j < 8; ++j) {
+            Real tol = std::max(1e-6, std::abs(Ke(i, j)) * 1e-9);  // 相对容差
             EXPECT_NEAR(Ke(i, j), Ke(j, i), tol);
         }
     }
@@ -110,7 +109,7 @@ TEST(ShapeIntegrationTest, Elasticity2D_Quad4) {
 // 3D Elasticity 集成测试
 // ═══════════════════════════════════════════════════════════════
 
-TEST(ShapeIntegrationTest, Elasticity3D_Tet4) {
+TEST(ShapeIntegrationTest, ElasticityUnified3D_Tet4) {
     // 创建四面体网格
     Material dummy_mat(0, "dummy");
     Mesh mesh("test_tet4", &dummy_mat);
@@ -124,7 +123,7 @@ TEST(ShapeIntegrationTest, Elasticity3D_Tet4) {
     // 弹性参数
     Real E = 200e9;
     Real nu = 0.3;
-    Elasticity3D elast(E, nu);
+    ElasticityUnified elast(E, nu, true);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -151,7 +150,7 @@ TEST(ShapeIntegrationTest, Elasticity3D_Tet4) {
     }
 }
 
-TEST(ShapeIntegrationTest, Elasticity3D_Brick8) {
+TEST(ShapeIntegrationTest, ElasticityUnified3D_Brick8) {
     // 创建六面体网格 (单位立方体)
     Material dummy_mat(0, "dummy");
     Mesh mesh("test_brick8", &dummy_mat);
@@ -170,7 +169,7 @@ TEST(ShapeIntegrationTest, Elasticity3D_Brick8) {
     // 弹性参数
     Real E = 200e9;
     Real nu = 0.3;
-    Elasticity3D elast(E, nu);
+    ElasticityUnified elast(E, nu, true);
     
     // 计算单元刚度矩阵
     DenseMatrix Ke;
@@ -181,10 +180,10 @@ TEST(ShapeIntegrationTest, Elasticity3D_Brick8) {
     EXPECT_EQ(Ke.rows(), 24);
     EXPECT_EQ(Ke.cols(), 24);
     
-    // 验证对称性
-    Real tol = 1e-6;
+    // 验证对称性（使用相对容差）
     for (int i = 0; i < 24; ++i) {
         for (int j = i + 1; j < 24; ++j) {
+            Real tol = std::max(1e-6, std::abs(Ke(i, j)) * 1e-9);  // 相对容差
             EXPECT_NEAR(Ke(i, j), Ke(j, i), tol);
         }
     }
@@ -212,7 +211,7 @@ TEST(ShapeIntegrationTest, Tri3_BackwardCompatibility) {
     
     Real E = 100.0;
     Real nu = 0.25;
-    Elasticity2D elast(E, nu, PlaneType::PlaneStress);
+    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
     
     // 新实现（使用形函数）
     DenseMatrix Ke_new;
@@ -250,7 +249,7 @@ TEST(ShapeIntegrationTest, RigidBodyMotion_Tri3) {
     
     Real E = 200e9;
     Real nu = 0.3;
-    Elasticity2D elast(E, nu, PlaneType::PlaneStress);
+    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
     
     DenseMatrix Ke;
     Vector Fe;
@@ -266,7 +265,15 @@ TEST(ShapeIntegrationTest, RigidBodyMotion_Tri3) {
     Vector f = Ke * u_rigid;
     
     // 验证内力为零（或极小）
-    Real tol = 1e-6;
+    // 使用相对于刚度矩阵元素的容差
+    Real K_norm = 0.0;
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            K_norm = std::max(K_norm, std::abs(Ke(i, j)));
+        }
+    }
+    Real tol = K_norm * 1e-9;  // 相对容差
+    
     for (int i = 0; i < 6; ++i) {
         EXPECT_NEAR(f[i], 0.0, tol)
             << "Rigid body motion produced non-zero force at DOF " << i;

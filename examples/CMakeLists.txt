@@ -14,3 +14,12 @@ target_include_directories(material_simple_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 # add_executable(cantilever_material cantilever_material.cpp)
 # target_link_libraries(cantilever_material PRIVATE fem)
 # target_include_directories(cantilever_material PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 统一物理模块测试
+add_executable(test_unified_heat test_unified_heat.cpp)
+target_link_libraries(test_unified_heat PRIVATE fem)
+target_include_directories(test_unified_heat PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+add_executable(test_unified_elasticity test_unified_elasticity.cpp)
+target_link_libraries(test_unified_elasticity PRIVATE fem)
+target_include_directories(test_unified_elasticity PRIVATE ${CMAKE_SOURCE_DIR}/src)

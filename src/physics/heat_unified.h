@@ -1,32 +1,20 @@
 /**
- * heat.h - 热传导物理模块
+ * heat_unified.h - 统一的热传导物理模块
  * 
- * 方程: -∇·(k∇u) = Q
+ * 方程: -∇·(k∇T) = Q
  * 
- * k: 导热系数
- * Q: 体热源
- * u: 温度场 (标量)
- */
-
-#pragma once
-
-#include "core/types.h"
-#include "mesh/mesh.h"
-#include "math/dense_matrix.h"
-#include "math/vector.h"
-
-namespace fem {
-namespace physics {
-
-/**
- * 热传导物理模块
+ * 支持单元类型:
+ * - 2D: Tri3, Quad4
+ * - 3D: Tet4, Brick8
+ * 
+ * 使用形函数系统进行通用装配。
  * 
  * 使用方法:
  * ```cpp
- * HeatConduction heat(k, Q);
+ * HeatConductionUnified heat(k, Q);
  * Assembler assembler(model, 1);  // 标量场
  * 
- * auto elem_func = [&](Index elem_id, const Mesh& mesh, 
+ * auto elem_func = [&](Index elem_id, const Mesh& mesh,
  *                      DenseMatrix& Ke, Vector& Fe) {
  *     heat.compute_element(elem_id, mesh, Ke, Fe);
  * };
@@ -34,26 +22,45 @@ namespace physics {
  * assembler.assemble(elem_func);
  * ```
  */
-class HeatConduction {
+
+#pragma once
+
+#include "physics/physics_base.h"
+
+namespace fem {
+namespace physics {
+
+/**
+ * 统一的热传导物理模块
+ * 
+ * 特性：
+ * - 支持所有 2D/3D 单元
+ * - 使用形函数系统（ShapeFunction）
+ * - 高斯积分精确计算
+ * - 无硬编码单元类型
+ */
+class HeatConductionUnified : public PhysicsBase {
 public:
     /**
      * 构造函数
      * @param conductivity 导热系数 k (默认 1.0)
      * @param source 体热源 Q (默认 0.0)
      */
-    HeatConduction(Real conductivity = 1.0, Real source = 0.0)
+    HeatConductionUnified(Real conductivity = 1.0, Real source = 0.0)
         : k_(conductivity), Q_(source) {}
 
     /**
      * 计算单元刚度矩阵和载荷向量
      * 
      * Ke_ij = ∫_Ω k ∇Ni · ∇Nj dΩ
-     * Fe_i = ∫_Ω Q Ni dΩ
+     * Fe_i  = ∫_Ω Q Ni dΩ
+     * 
+     * 使用高斯积分计算，支持所有单元类型。
      * 
      * @param elem_id 单元ID
      * @param mesh 网格引用
-     * @param Ke 输出：单元刚度矩阵
-     * @param Fe 输出：单元载荷向量
+     * @param Ke 输出：单元刚度矩阵 (n_nodes × n_nodes)
+     * @param Fe 输出：单元载荷向量 (n_nodes)
      */
     void compute_element(Index elem_id, const Mesh& mesh,
                         DenseMatrix& Ke, Vector& Fe) const;
@@ -80,14 +87,6 @@ public:
 private:
     Real k_;  ///< 导热系数
     Real Q_;  ///< 体热源
-
-    /**
-     * 计算三角形单元的形函数梯度
-     * @param coords 节点坐标 [3]
-     * @param grad 输出：梯度 [3][2] (dN/dx, dN/dy)
-     * @return 单元面积
-     */
-    Real compute_tri3_gradients(const Vec3* coords, Real grad[][2]) const;
 };
 
 } // namespace physics

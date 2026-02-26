@@ -31,10 +31,9 @@ add_library(fem STATIC
     # Assembly
     assembly/assembler.cpp
     # Physics
-    physics/heat.cpp
-    physics/elasticity_v2.cpp
-    physics/elasticity_3d.cpp
-    physics/elasticity_material.cpp
+    physics/physics_base.cpp
+    physics/heat_unified.cpp
+    physics/elasticity_unified.cpp
     # IO
     io/vtk_writer.cpp
     # Solver

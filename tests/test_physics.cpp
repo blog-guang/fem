@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "physics/heat.h"
-#include "physics/elasticity_v2.h"
+#include "physics/heat_unified.h"
+#include "physics/elasticity_unified.h"
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 
@@ -9,7 +9,7 @@ using namespace fem::physics;
 
 // ═══ HeatConduction Tests ═══
 TEST(HeatConductionTest, Construction) {
-    HeatConduction heat(1.5, 10.0);
+    HeatConductionUnified heat(1.5, 10.0);
     
     EXPECT_DOUBLE_EQ(heat.conductivity(), 1.5);
     EXPECT_DOUBLE_EQ(heat.source(), 10.0);
@@ -23,7 +23,7 @@ TEST(HeatConductionTest, SimpleElement) {
     Mesh& mesh = model.mesh(mesh_id);
     MeshGenerator::generate_unit_square_tri(2, 2, mesh);
     
-    HeatConduction heat(1.0, 1.0);
+    HeatConductionUnified heat(1.0, 1.0);
     
     DenseMatrix Ke(3, 3);
     Vector Fe(3);
@@ -49,7 +49,7 @@ TEST(HeatConductionTest, SimpleElement) {
 
 // ═══ Elasticity2D Tests ═══
 TEST(Elasticity2DTest, Construction) {
-    Elasticity2D elast(1000.0, 0.3, PlaneType::PlaneStress);
+    ElasticityUnified elast(1000.0, 0.3, PlaneType::PlaneStress);
     
     EXPECT_DOUBLE_EQ(elast.youngs_modulus(), 1000.0);
     EXPECT_DOUBLE_EQ(elast.poissons_ratio(), 0.3);
@@ -64,7 +64,7 @@ TEST(Elasticity2DTest, SimpleElement) {
     Mesh& mesh = model.mesh(mesh_id);
     MeshGenerator::generate_unit_square_tri(2, 2, mesh);
     
-    Elasticity2D elast(1000.0, 0.3, PlaneType::PlaneStress);
+    ElasticityUnified elast(1000.0, 0.3, PlaneType::PlaneStress);
     
     DenseMatrix Ke(6, 6);  // 3 节点 * 2 DOF
     Vector Fe(6);
@@ -98,7 +98,7 @@ TEST(Elasticity2DTest, MatrixPositiveDefinite) {
     Mesh& mesh = model.mesh(mesh_id);
     MeshGenerator::generate_unit_square_tri(2, 2, mesh);
     
-    Elasticity2D elast(1000.0, 0.3, PlaneType::PlaneStress);
+    ElasticityUnified elast(1000.0, 0.3, PlaneType::PlaneStress);
     
     DenseMatrix Ke(6, 6);
     Vector Fe(6);
