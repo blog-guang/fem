@@ -45,6 +45,21 @@ add_executable(test_plasticity_pcg test_plasticity_pcg.cpp)
 target_link_libraries(test_plasticity_pcg PRIVATE fem)
 target_include_directories(test_plasticity_pcg PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
+# Newton-Raphson 非线性求解（完整）
+add_executable(test_plasticity_nr_complete test_plasticity_nr_complete.cpp)
+target_link_libraries(test_plasticity_nr_complete PRIVATE fem)
+target_include_directories(test_plasticity_nr_complete PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 纯剪切测试
+add_executable(test_pure_shear test_pure_shear.cpp)
+target_link_libraries(test_pure_shear PRIVATE fem)
+target_include_directories(test_pure_shear PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 双轴拉伸测试
+add_executable(test_biaxial_tension test_biaxial_tension.cpp)
+target_link_libraries(test_biaxial_tension PRIVATE fem)
+target_include_directories(test_biaxial_tension PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
 # 验证测试（单元级别）
 add_executable(test_plasticity_verification test_plasticity_verification.cpp)
 target_link_libraries(test_plasticity_verification PRIVATE fem)
