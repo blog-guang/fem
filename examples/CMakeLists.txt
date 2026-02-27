@@ -35,6 +35,11 @@ target_link_libraries(test_data_manager PRIVATE fem)
 target_include_directories(test_data_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 # 弹塑性测试（材料非线性）
+# 应力提取调试
+add_executable(test_stress_extraction_debug test_stress_extraction_debug.cpp)
+target_link_libraries(test_stress_extraction_debug PRIVATE fem)
+target_include_directories(test_stress_extraction_debug PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
 # PCG 求解器测试（完整 FEM + 塑性）
 add_executable(test_plasticity_pcg test_plasticity_pcg.cpp)
 target_link_libraries(test_plasticity_pcg PRIVATE fem)
