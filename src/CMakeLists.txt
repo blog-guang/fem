@@ -43,6 +43,7 @@ add_library(fem STATIC
     # Solver
     solver/solver.cpp
     solver/cg.cpp
+    solver/pcg.cpp
     solver/bicgstab.cpp
     solver/newton_raphson.cpp
 )
