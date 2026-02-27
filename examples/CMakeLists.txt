@@ -60,6 +60,11 @@ add_executable(test_biaxial_tension test_biaxial_tension.cpp)
 target_link_libraries(test_biaxial_tension PRIVATE fem)
 target_include_directories(test_biaxial_tension PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
+# 增量后处理测试
+add_executable(test_incremental_postprocess test_incremental_postprocess.cpp)
+target_link_libraries(test_incremental_postprocess PRIVATE fem)
+target_include_directories(test_incremental_postprocess PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
 # 验证测试（单元级别）
 add_executable(test_plasticity_verification test_plasticity_verification.cpp)
 target_link_libraries(test_plasticity_verification PRIVATE fem)

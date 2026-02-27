@@ -38,6 +38,7 @@ add_library(fem STATIC
     data/base_data.cpp
     # PostProcess (后处理)
     postprocess/post_processor.cpp
+    postprocess/post_processor_incremental.cpp
     # IO
     io/vtk_writer.cpp
     # Solver
