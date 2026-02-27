@@ -147,6 +147,18 @@ public:
      */
     Index dofs_per_node() const { return dofs_per_node_; }
 
+    /**
+     * 计算反力 (reaction forces)
+     * 
+     * 使用原始刚度矩阵: R = K_original * u
+     * 
+     * 注意：必须在 apply_dirichlet() 之后、求解之后调用
+     * 
+     * @param u 位移向量
+     * @return 反力向量 (仅 Dirichlet DOFs 有意义)
+     */
+    Vector compute_reaction_forces(const std::vector<Real>& u) const;
+
 private:
     const Model& model_;          ///< 模型引用
     Index dofs_per_node_;         ///< 每节点自由度数
@@ -157,6 +169,10 @@ private:
 
     bool assembled_{false};       ///< 是否已装配
     std::vector<bool> is_dirichlet_dof_;  ///< 标记 Dirichlet 约束的 DOF
+    
+    // 用于反力计算
+    mutable SparseMatrixCSR K_original_;  ///< 原始刚度矩阵 (apply_dirichlet 前)
+    bool has_original_{false};            ///< 是否已保存原始矩阵
 };
 
 } // namespace fem

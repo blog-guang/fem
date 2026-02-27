@@ -79,3 +79,8 @@ target_include_directories(test_plasticity_verification PRIVATE ${CMAKE_SOURCE_D
 # add_executable(test_plasticity_bending test_plasticity_bending.cpp)
 # target_link_libraries(test_plasticity_bending PRIVATE fem)
 # target_include_directories(test_plasticity_bending PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 反力提取测试
+add_executable(test_reaction_forces test_reaction_forces.cpp)
+target_link_libraries(test_reaction_forces PRIVATE fem)
+target_include_directories(test_reaction_forces PRIVATE ${CMAKE_SOURCE_DIR}/src)

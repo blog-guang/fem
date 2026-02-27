@@ -160,6 +160,12 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
 
     // 转换为 CSR 格式以便修改
     SparseMatrixCSR K_csr = coo_to_csr(K_coo_);
+    
+    // 保存原始刚度矩阵用于反力计算
+    if (!has_original_) {
+        K_original_ = K_csr;
+        has_original_ = true;
+    }
 
     // 收集所有需要约束的 DOF 及其值
     std::vector<Real> bc_values(n_dofs_, 0.0);
@@ -320,11 +326,40 @@ SparseMatrixCSR Assembler::matrix() const {
     return coo_to_csr(K_coo_);
 }
 
+Vector Assembler::compute_reaction_forces(const std::vector<Real>& u) const {
+    if (!has_original_) {
+        throw std::runtime_error("Original matrix not saved. apply_dirichlet() not called?");
+    }
+    
+    if (u.size() != n_dofs_) {
+        throw std::runtime_error("Displacement vector size mismatch");
+    }
+    
+    // R = K_original * u
+    Vector R(n_dofs_, 0.0);
+    
+    for (Index i = 0; i < n_dofs_; ++i) {
+        Index row_start = K_original_.row_ptr()[i];
+        Index row_end = K_original_.row_ptr()[i + 1];
+        
+        Real sum = 0.0;
+        for (Index k = row_start; k < row_end; ++k) {
+            Index j = K_original_.col_indices()[k];
+            sum += K_original_.values()[k] * u[j];
+        }
+        
+        R[i] = sum;
+    }
+    
+    return R;
+}
+
 void Assembler::clear() {
     K_coo_ = SparseMatrixCOO(n_dofs_, n_dofs_);
     F_ = Vector(n_dofs_, 0.0);
     is_dirichlet_dof_.assign(n_dofs_, false);
     assembled_ = false;
+    has_original_ = false;
 }
 
 } // namespace fem
