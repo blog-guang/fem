@@ -33,3 +33,19 @@ target_include_directories(test_elasticity_with_plasticity PRIVATE ${CMAKE_SOURC
 add_executable(test_data_manager test_data_manager.cpp)
 target_link_libraries(test_data_manager PRIVATE fem)
 target_include_directories(test_data_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 弹塑性测试（材料非线性）
+# 验证测试（单元级别）
+add_executable(test_plasticity_verification test_plasticity_verification.cpp)
+target_link_libraries(test_plasticity_verification PRIVATE fem)
+target_include_directories(test_plasticity_verification PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 简单拉伸测试（待修复）
+# add_executable(test_plasticity_simple test_plasticity_simple.cpp)
+# target_link_libraries(test_plasticity_simple PRIVATE fem)
+# target_include_directories(test_plasticity_simple PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 弯曲梁测试（待完善）
+# add_executable(test_plasticity_bending test_plasticity_bending.cpp)
+# target_link_libraries(test_plasticity_bending PRIVATE fem)
+# target_include_directories(test_plasticity_bending PRIVATE ${CMAKE_SOURCE_DIR}/src)
