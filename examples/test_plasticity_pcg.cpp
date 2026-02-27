@@ -221,7 +221,9 @@ int main() {
         std::vector<Real> u(F.size(), 0.0);
         
         Timer timer;
+        timer.start();
         auto result = cg_solver.solve(K, F.raw(), u);
+        timer.stop();
         double elapsed = timer.elapsed_s();
         
         if (!result.converged) {
@@ -333,7 +335,9 @@ int main() {
         std::vector<Real> u(F.size(), 0.0);
         
         Timer timer;
+        timer.start();
         auto result = pcg_solver.solve(K, F.raw(), u);
+        timer.stop();
         double elapsed = timer.elapsed_s();
         
         if (!result.converged) {

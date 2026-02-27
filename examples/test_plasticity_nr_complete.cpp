@@ -250,6 +250,7 @@ int main() {
     std::cout << "------------------------------------------------------------------------------\n";
     
     Timer total_timer;
+    total_timer.start();
     
     for (int step = 1; step <= num_steps; ++step) {
         Real u_applied = step * du_step;
@@ -321,9 +322,12 @@ int main() {
         max_nr_iter = std::max(max_nr_iter, iter);
     }
     
+    total_timer.stop();
+    
     std::cout << "NR iterations: total = " << total_nr_iter;
     std::cout << ", avg = " << static_cast<Real>(total_nr_iter) / num_steps;
     std::cout << ", max = " << max_nr_iter << "\n";
+    std::cout << "Total time: " << total_timer.elapsed_ms() << " ms\n";
     
     // 检查屈服
     size_t yield_step = 0;
