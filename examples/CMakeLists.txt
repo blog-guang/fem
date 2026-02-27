@@ -28,3 +28,8 @@ target_include_directories(test_unified_elasticity PRIVATE ${CMAKE_SOURCE_DIR}/s
 add_executable(test_elasticity_with_plasticity test_elasticity_with_plasticity.cpp)
 target_link_libraries(test_elasticity_with_plasticity PRIVATE fem)
 target_include_directories(test_elasticity_with_plasticity PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 数据管理系统示例
+add_executable(test_data_manager test_data_manager.cpp)
+target_link_libraries(test_data_manager PRIVATE fem)
+target_include_directories(test_data_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)

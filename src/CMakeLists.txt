@@ -34,6 +34,8 @@ add_library(fem STATIC
     physics/physics_base.cpp
     physics/heat_unified.cpp
     physics/elasticity_unified.cpp
+    # Data (场数据管理)
+    data/base_data.cpp
     # IO
     io/vtk_writer.cpp
     # Solver
