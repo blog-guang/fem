@@ -29,8 +29,8 @@
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
-#include "physics/heat.h"
-#include "physics/elasticity_v2.h"
+#include "physics/heat_unified.h"
+#include "physics/elasticity_unified.h"
 #include "math/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
@@ -75,7 +75,7 @@ int main() {
     Real k = mesh.material()->property("k", 50.0);
     Real Q = 0.0;  // 无内热源
     
-    HeatConduction heat(k, Q);
+    HeatConductionUnified heat(k, Q);
     
     // 创建热问题装配器 (标量场)
     Assembler heat_assembler(model, 1);
@@ -146,7 +146,7 @@ int main() {
     Real nu = mesh.material()->property("nu", 0.3);
     Real alpha = mesh.material()->property("alpha", 1.2e-5);
     
-    Elasticity2D elast(E, nu, PlaneType::PlaneStress);
+    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
     
     // 创建结构问题装配器 (矢量场)
     Assembler struct_assembler(model, 2);

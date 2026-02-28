@@ -18,7 +18,7 @@
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
-#include "physics/elasticity_v2.h"
+#include "physics/elasticity_unified.h"
 #include "math/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
@@ -62,7 +62,7 @@ int main() {
     Real E = mesh.material()->property("E", 1e6);
     Real nu = mesh.material()->property("nu", 0.3);
     
-    Elasticity2D elast(E, nu, PlaneType::PlaneStress);
+    ElasticityUnified elast(E, nu, PlaneType::PlaneStress);
     
     // ── 3. 创建 Assembler 并装配 ──
     Assembler assembler(model, 2);  // 矢量场 (u_x, u_y)
