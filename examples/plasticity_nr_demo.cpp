@@ -239,7 +239,7 @@ int main() {
     nr_solver.set_params(nr_params);
     
     // 初始位移
-    Vector u(mesh.num_nodes() * 2, 0.0);
+    std::vector<Real> u(mesh.num_nodes() * 2, 0.0);
     
     // 结果记录
     std::vector<Real> strain_history, stress_history;

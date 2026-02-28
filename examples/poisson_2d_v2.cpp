@@ -129,9 +129,7 @@ int main() {
     timer.start();
     SparseMatrixCSR K = assembler.matrix();
     const Vector& F = assembler.rhs();
-    
-    std::vector<Real> F_std = F;
-    std::vector<Real> u_std(F.size(), 0.0);
+    Vector u(F.size(), 0.0);
     
     FEM_INFO("System retrieved in: " + std::to_string(timer.elapsed_s()) + "s");
     
@@ -142,7 +140,7 @@ int main() {
     solver.set_tol(1e-8);
     solver.set_max_iter(1000);
     
-    auto result = solver.solve(K, F_std, u_std);
+    auto result = solver.solve(K, F, u);
     
     FEM_INFO("Solve completed in: " + std::to_string(timer.elapsed_s()) + "s");
     FEM_INFO("CG convergence: " + std::string(result.converged ? "YES" : "NO") + 
@@ -152,9 +150,9 @@ int main() {
         // ── 6. 输出结果 ──
         Real max_u = 0.0;
         std::size_t max_idx = 0;
-        for (std::size_t i = 0; i < u_std.size(); ++i) {
-            if (std::abs(u_std[i]) > max_u) {
-                max_u = std::abs(u_std[i]);
+        for (std::size_t i = 0; i < u.size(); ++i) {
+            if (std::abs(u[i]) > max_u) {
+                max_u = std::abs(u[i]);
                 max_idx = i;
             }
         }

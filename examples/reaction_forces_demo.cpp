@@ -124,7 +124,7 @@ int main() {
     std::cout << "Residual: " << result.residual << "\n\n";
 
     // ========== 提取反力 ==========
-    Vector R = assembler.compute_reaction_forces(u);
+    Vector R = assembler.compute_reaction_forces(u.raw());
 
     // 计算左端节点的总反力 (x 方向)
     Real total_reaction_x = 0.0;

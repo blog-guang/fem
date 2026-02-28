@@ -105,7 +105,7 @@ int main() {
         SparseMatrixCSR K = make_poisson_2d(n);
         
         int N = n * n;
-        std::vector<Real> F(N, 1.0);  // 右端项
+        Vector F(N, 1.0);  // 右端项
         
         // 2. 测试不同求解器
         struct Result {
@@ -118,7 +118,7 @@ int main() {
         
         // ─── CG (无预条件) ───
         {
-            std::vector<Real> x(N, 0.0);
+            Vector x(N, 0.0);
             CGSolver solver;
             solver.set_tol(1e-8);
             solver.set_max_iter(10000);
@@ -134,7 +134,7 @@ int main() {
         
         // ─── Jacobi-PCG ───
         {
-            std::vector<Real> x(N, 0.0);
+            Vector x(N, 0.0);
             PCGSolver solver("jacobi");
             solver.set_tol(1e-8);
             solver.set_max_iter(10000);
@@ -150,7 +150,7 @@ int main() {
         
         // ─── SSOR-PCG ───
         {
-            std::vector<Real> x(N, 0.0);
+            Vector x(N, 0.0);
             PCGSolver solver("ssor", 1.0);
             solver.set_tol(1e-8);
             solver.set_max_iter(10000);
@@ -166,7 +166,7 @@ int main() {
         
         // ─── ILU-PCG ───
         {
-            std::vector<Real> x(N, 0.0);
+            Vector x(N, 0.0);
             PCGSolver solver("ilu");
             solver.set_tol(1e-8);
             solver.set_max_iter(10000);
@@ -182,7 +182,7 @@ int main() {
         
         // ─── AMG-PCG ───
         {
-            std::vector<Real> x(N, 0.0);
+            Vector x(N, 0.0);
             PCGSolver solver("amg");
             solver.set_tol(1e-8);
             solver.set_max_iter(10000);
@@ -235,7 +235,7 @@ int main() {
     
     // CG
     {
-        std::vector<Real> x(N, 0.0);
+        Vector x(N, 0.0);
         CGSolver solver;
         solver.set_tol(1e-8);
         solver.set_max_iter(10000);
@@ -255,7 +255,7 @@ int main() {
     
     // Jacobi
     {
-        std::vector<Real> x(N, 0.0);
+        Vector x(N, 0.0);
         PCGSolver solver("jacobi");
         solver.set_tol(1e-8);
         solver.set_max_iter(10000);
@@ -275,7 +275,7 @@ int main() {
     
     // SSOR
     {
-        std::vector<Real> x(N, 0.0);
+        Vector x(N, 0.0);
         PCGSolver solver("ssor", 1.0);
         solver.set_tol(1e-8);
         solver.set_max_iter(10000);
@@ -295,7 +295,7 @@ int main() {
     
     // ILU
     {
-        std::vector<Real> x(N, 0.0);
+        Vector x(N, 0.0);
         PCGSolver solver("ilu");
         solver.set_tol(1e-8);
         solver.set_max_iter(10000);
@@ -315,7 +315,7 @@ int main() {
     
     // AMG
     {
-        std::vector<Real> x(N, 0.0);
+        Vector x(N, 0.0);
         PCGSolver solver("amg");
         solver.set_tol(1e-8);
         solver.set_max_iter(10000);
