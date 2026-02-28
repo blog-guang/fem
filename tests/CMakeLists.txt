@@ -8,6 +8,7 @@ add_executable(fem_tests
     test_core.cpp
     test_math.cpp
     test_material.cpp
+    test_material_factory.cpp
     test_material_models.cpp
     test_advanced_materials.cpp
     test_shape_function.cpp

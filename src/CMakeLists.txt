@@ -12,6 +12,7 @@ add_library(fem STATIC
     # Material (本构模型)
     material/state_variables.cpp
     material/material.cpp
+    material/material_factory.cpp
     material/isotropic_elastic.cpp
     material/orthotropic_elastic.cpp
     material/j2_plasticity.cpp
