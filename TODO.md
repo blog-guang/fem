@@ -151,6 +151,13 @@
   - 4/4 测试通过
   - benchmark 更新（CG/Jacobi/SSOR/ILU/AMG 对比）
   
+**✅ 代码重构 (2026-02-28):**
+- ✓ **Linear Solver 移动到 math/** ✅
+  - solver/ → math/ (solver, cg, pcg, bicgstab, newton_raphson)
+  - 更合理的代码组织结构
+  - 所有 #include 路径更新
+  - 所有示例和测试验证通过
+  
 **当前任务 (Phase 3, 2026-02-28):**
 1. **高阶单元** (Tri6, Quad8)
    - 更高精度

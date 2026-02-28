@@ -268,16 +268,19 @@ VTK输出: thermal_stress_result.vtk (温度+位移) ✅
 fem/
 ├── src/
 │   ├── core/          # 基础设施 (types, logger, timer, formatter)
-│   ├── math/          # 数学库 (Vector, DenseMatrix, SparseMatrix, 转换)
-│   ├── solver/        # 求解器 (CG, Jacobi预条件器)
+│   ├── math/          # 数学库 (Vector, Matrix, Solvers: CG/PCG/ILU/AMG/Newton-Raphson)
 │   ├── mesh/          # 网格系统 (Element, Material, Mesh, Model, Generator)
-│   ├── assembly/      # 装配器 (Assembler, DirichletBC)
-│   ├── physics/       # 物理模块 (heat, elasticity_v2)
+│   ├── assembly/      # 装配器 (Assembler, DirichletBC, NeumannBC)
+│   ├── physics/       # 物理模块 (heat, elasticity)
+│   ├── material/      # 材料本构 (Elastic, J2Plasticity)
+│   ├── data/          # 场数据管理 (FieldData, DataManager)
+│   ├── postprocess/   # 后处理 (PostProcessor)
 │   └── io/            # 输出 (VTKWriter)
-├── examples/          # 6个示例程序
-├── tests/             # 67个单元测试
+├── examples/          # 9个示例程序
+├── tests/             # 178个单元测试
 ├── third_party/
-│   └── googletest/    # GoogleTest (submodule)
+│   ├── googletest/    # GoogleTest (submodule)
+│   └── amgcl/         # AMGCL (submodule)
 └── TODO.md            # 开发路线图
 ```
 
