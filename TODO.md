@@ -76,8 +76,14 @@
 ### Phase 3: 高级功能
 - [ ] 高阶单元 (Tri6, Quad8, Tet10, Brick20)
 - [ ] 自适应网格细化 (AMR)
-- [ ] 预条件器 (ILU0, AMG)
-- [ ] 非线性求解器 (Newton-Raphson)
+- [x] **预条件器 ILU(0)** ✅ (2026-02-28)
+  - 不完全 LU 分解（保持原稀疏模式）
+  - 前向/后向替换求解
+  - 性能：迭代次数减少 62%（208 → 79）
+  - 加速比：2.63x（相对于 CG），2.37x（相对于 Jacobi）
+  - 5/5 测试通过，性能对比示例完成
+- [ ] 预条件器 (AMG)
+- [x] **非线性求解器 (Newton-Raphson)** ✅ (2026-02-25)
 - [ ] 瞬态分析 (时间积分)
 
 ### Phase 4: 扩展
@@ -91,14 +97,15 @@
 **✅ 已完成 (Phase 2.1-2.5, 2026-02-25):**
 - ✓ Mesh V2 架构 (Element/Material/Mesh/Model)
 - ✓ 数学库 (Vector, DenseMatrix, SparseMatrixCSR/COO, 格式转换)
-- ✓ 求解器 (CG + Jacobi预条件器)
+- ✓ 求解器 (CG, PCG + Jacobi/SSOR/ILU预条件器)
 - ✓ `mesh_generator` (4种网格类型, 2D/3D边界识别)
 - ✓ **Assembler** (多自由度场支持, Dirichlet BC, Neumann BC) ✅
 - ✓ **physics/heat** (HeatConduction, Tri3单元) ✅
 - ✓ **physics/elasticity_v2** (Elasticity2D, 平面应力/应变) ✅
 - ✓ **io/vtk_writer** (单Mesh输出, 点数据, 单元数据) ✅
-- ✓ **86/86 测试全部通过** ✅
-- ✓ **8个示例程序验证通过** ✅
+- ✓ **174/174 测试全部通过** ✅
+- ✓ **9个示例程序验证通过** ✅
+  - benchmark_preconditioners (ILU vs Jacobi vs SSOR vs CG)
   - Poisson, Heat, Elasticity, Cantilever Beam, **Thermal-Stress Coupling**
 - ✓ GoogleTest submodule 集成
 - ✓ 代码清理 (删除 1188+ 行旧代码)
@@ -115,15 +122,26 @@
   - 线搜索算法（Backtracking）
   - 6/6 测试通过
   - 几何非线性桁架示例
+
+**✅ Phase 3.2 完成 (2026-02-28):**
+- ✓ **ILU(0) 预条件器** ✅
+  - ILUPreconditioner 类实现
+  - 不完全 LU 分解（zero fill-in）
+  - 前向/后向替换求解
+  - 集成到 PCGSolver
+  - 性能：100x100 网格，迭代次数 79（CG: 208）
+  - 加速比：2.63x（相对于 CG），2.37x（相对于 Jacobi）
+  - 5/5 测试通过
+  - benchmark_preconditioners 性能对比示例
   
-**当前任务 (Phase 3, 2026-02-25):**
+**当前任务 (Phase 3, 2026-02-28):**
 1. **高阶单元** (Tri6, Quad8)
    - 更高精度
    - 更好的应力计算
 
-2. **预条件器优化** (ILU0, AMG)
-   - 加速大型问题求解
-   - 提高收敛性
+2. **预条件器优化** (AMG)
+   - 代数多重网格
+   - 更适合大规模问题
 
 **短期 (Phase 2.5-3.0):**
 - 文档完善 (API 文档、教程)
