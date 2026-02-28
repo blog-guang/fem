@@ -14,6 +14,7 @@ add_executable(fem_tests
     test_shape_function.cpp
     test_shape_integration.cpp
     test_solver.cpp
+    test_solver_factory.cpp
     test_assembler.cpp
     test_physics.cpp
     test_mesh_v2.cpp

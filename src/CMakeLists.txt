@@ -44,6 +44,7 @@ add_library(fem STATIC
     io/vtk_writer.cpp
     # Math - Linear Solvers
     math/solver.cpp
+    math/solver_factory.cpp
     math/cg.cpp
     math/pcg.cpp
     math/bicgstab.cpp
