@@ -1,4 +1,5 @@
 #include "math/newton_raphson.h"
+#include "math/vector.h"
 #include "core/logger.h"
 #include <cmath>
 #include <algorithm>
@@ -13,9 +14,9 @@ NewtonRaphsonResult NewtonRaphsonSolver::solve(NonlinearProblem& problem,
     std::vector<Real> R(n);
     std::vector<Real> du(n);
     
-    // 计算初始残差
+    // 计算初始残差（使用 Vector 计算范数）
     problem.compute_residual(u, R);
-    result.initial_residual = compute_norm(R);
+    result.initial_residual = Vector(R).norm();
     result.residual_norm = result.initial_residual;
     
     if (params_.verbose) {
@@ -35,11 +36,10 @@ NewtonRaphsonResult NewtonRaphsonSolver::solve(NonlinearProblem& problem,
         SparseMatrixCSR K_t;
         problem.compute_tangent(u, K_t);
         
-        // 2. 求解线性系统: K_t * du = -R
-        std::vector<Real> neg_R(n);
-        for (Index i = 0; i < n; ++i) {
-            neg_R[i] = -R[i];
-        }
+        // 2. 求解线性系统: K_t * du = -R （使用 Vector 一元负号）
+        Vector R_vec(R);
+        Vector neg_R_vec = -R_vec;
+        std::vector<Real> neg_R(neg_R_vec.data(), neg_R_vec.data() + n);
         
         // 使用 CG 求解器求解线性系统
         CGSolver linear_solver;
@@ -62,14 +62,15 @@ NewtonRaphsonResult NewtonRaphsonSolver::solve(NonlinearProblem& problem,
             alpha = line_search(problem, u, du, result.residual_norm);
         }
         
-        // 4. 更新解: u_{n+1} = u_n + α * du
-        for (Index i = 0; i < n; ++i) {
-            u[i] += alpha * du[i];
-        }
+        // 4. 更新解: u_{n+1} = u_n + α * du （使用 Vector 运算符）
+        Vector u_vec(u);
+        Vector du_vec(du);
+        u_vec += alpha * du_vec;
+        u.assign(u_vec.data(), u_vec.data() + n);
         
-        // 5. 计算新的残差
+        // 5. 计算新的残差（使用 Vector 计算范数）
         problem.compute_residual(u, R);
-        result.residual_norm = compute_norm(R);
+        result.residual_norm = Vector(R).norm();
         result.residual_history.push_back(result.residual_norm);
         
         if (params_.verbose) {
@@ -107,11 +108,8 @@ NewtonRaphsonResult NewtonRaphsonSolver::solve(NonlinearProblem& problem,
 }
 
 Real NewtonRaphsonSolver::compute_norm(const std::vector<Real>& v) const {
-    Real sum = 0.0;
-    for (Real x : v) {
-        sum += x * x;
-    }
-    return std::sqrt(sum);
+    // 使用 Vector 的 norm() 方法
+    return Vector(v).norm();
 }
 
 Real NewtonRaphsonSolver::line_search(NonlinearProblem& problem,
@@ -128,14 +126,15 @@ Real NewtonRaphsonSolver::line_search(NonlinearProblem& problem,
     std::vector<Real> R_new(u.size());
     
     for (Index iter = 0; iter < max_iter; ++iter) {
-        // u_new = u + α * du
-        for (std::size_t i = 0; i < u.size(); ++i) {
-            u_new[i] = u[i] + alpha * du[i];
-        }
+        // u_new = u + α * du （使用 Vector 运算符）
+        Vector u_vec(u);
+        Vector du_vec(du);
+        Vector u_new_vec = u_vec + alpha * du_vec;
+        u_new.assign(u_new_vec.data(), u_new_vec.data() + u.size());
         
-        // 计算新残差
+        // 计算新残差（使用 Vector 的 norm()）
         problem.compute_residual(u_new, R_new);
-        Real residual_new = compute_norm(R_new);
+        Real residual_new = Vector(R_new).norm();
         
         // Armijo 条件：||R_new|| < (1 - c*α) * ||R||
         if (residual_new < (1.0 - c * alpha) * residual_norm) {

@@ -5,6 +5,14 @@
 
 namespace fem {
 
+Vector Vector::operator-() const {
+    Vector result(size());
+    for (std::size_t i = 0; i < size(); ++i) {
+        result[i] = -data_[i];
+    }
+    return result;
+}
+
 Vector Vector::operator+(const Vector& other) const {
     if (size() != other.size()) {
         throw std::runtime_error("Vector size mismatch in addition");
@@ -90,6 +98,17 @@ Real Vector::dot(const Vector& other) const {
     Real result = 0.0;
     for (std::size_t i = 0; i < size(); ++i) {
         result += data_[i] * other[i];
+    }
+    return result;
+}
+
+Vector Vector::hadamard(const Vector& other) const {
+    if (size() != other.size()) {
+        throw std::runtime_error("Vector size mismatch in Hadamard product");
+    }
+    Vector result(size());
+    for (std::size_t i = 0; i < size(); ++i) {
+        result[i] = data_[i] * other[i];
     }
     return result;
 }

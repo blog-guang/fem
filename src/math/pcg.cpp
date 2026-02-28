@@ -1,8 +1,9 @@
 /**
- * pcg.cpp - PCG Solver Implementation
+ * pcg.cpp - PCG Solver Implementation (Refactored with Vector)
  */
 
 #include "math/pcg.h"
+#include "math/vector.h"
 #include "core/logger.h"
 #include <cmath>
 #include <algorithm>
@@ -19,24 +20,6 @@
 #include <amgcl/adapter/crs_tuple.hpp>
 
 namespace fem {
-
-// ═══════════════════════════════════════════════════════════
-// 辅助函数
-// ═══════════════════════════════════════════════════════════
-
-static Real dot(const std::vector<Real>& a, const std::vector<Real>& b) {
-    Real s = 0.0;
-    for (std::size_t i = 0; i < a.size(); ++i) {
-        s += a[i] * b[i];
-    }
-    return s;
-}
-
-static void axpy(Real alpha, const std::vector<Real>& x, std::vector<Real>& y) {
-    for (std::size_t i = 0; i < x.size(); ++i) {
-        y[i] += alpha * x[i];
-    }
-}
 
 // ═══════════════════════════════════════════════════════════
 // Jacobi 预条件器
@@ -417,7 +400,7 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         precond_->build(K);
     }
     
-    // 初始化
+    // 初始化（使用 Vector 包装）
     std::vector<Real> r = F;        // r0 = F - K*x0 = F (因为 x0 = 0)
     std::vector<Real> z(n);         // z = M^{-1} * r
     std::vector<Real> p(n);         // 搜索方向
@@ -432,8 +415,11 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
     
     p = z;  // p0 = z0
     
-    Real rz = dot(r, z);  // (r, z)
-    Real r_norm_init = std::sqrt(dot(r, r));
+    // 使用 Vector 计算点积和范数
+    Vector r_vec(r);
+    Vector z_vec(z);
+    Real rz = r_vec.dot(z_vec);       // (r, z)
+    Real r_norm_init = r_vec.norm();  // ||r0||
     
     // 主迭代
     for (std::size_t iter = 0; iter < max_iter_; ++iter) {
@@ -441,23 +427,30 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         K.matvec(p.data(), Ap.data());
         
         // α = (r, z) / (p, Ap)
-        Real pAp = dot(p, Ap);
+        Vector p_vec(p);
+        Vector Ap_vec(Ap);
+        Real pAp = p_vec.dot(Ap_vec);
         
         if (std::abs(pAp) < 1e-30) {
             FEM_WARN("PCG: (p, Ap) ≈ 0, matrix may not be positive definite");
-            return {false, iter, std::sqrt(dot(r, r))};
+            r_vec = Vector(r);
+            return {false, iter, r_vec.norm()};
         }
         
         Real alpha = rz / pAp;
         
-        // x_{k+1} = x_k + α * p
-        axpy(alpha, p, x);
+        // x_{k+1} = x_k + α * p （使用 Vector 运算符）
+        Vector x_vec(x);
+        x_vec += alpha * p_vec;
+        x.assign(x_vec.data(), x_vec.data() + n);
         
-        // r_{k+1} = r_k - α * Ap
-        axpy(-alpha, Ap, r);
+        // r_{k+1} = r_k - α * Ap （使用 Vector 运算符）
+        r_vec = Vector(r);
+        r_vec -= alpha * Ap_vec;
+        r.assign(r_vec.data(), r_vec.data() + n);
         
         // 检查收敛
-        Real r_norm = std::sqrt(dot(r, r));
+        Real r_norm = r_vec.norm();
         Real rel_res = r_norm / r_norm_init;
         
         if (r_norm < tol_ || rel_res < tol_) {
@@ -475,19 +468,21 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         }
         
         // β = (r_{k+1}, z_{k+1}) / (r_k, z_k)
-        Real rz_new = dot(r, z);
+        z_vec = Vector(z);
+        r_vec = Vector(r);
+        Real rz_new = r_vec.dot(z_vec);
         Real beta = rz_new / rz;
         
-        // p_{k+1} = z_{k+1} + β * p_k
-        for (std::size_t i = 0; i < n; ++i) {
-            p[i] = z[i] + beta * p[i];
-        }
+        // p_{k+1} = z_{k+1} + β * p_k （使用 Vector 运算符）
+        p_vec = z_vec + beta * Vector(p);
+        p.assign(p_vec.data(), p_vec.data() + n);
         
         rz = rz_new;
     }
     
     FEM_WARN("PCG did not converge in " + std::to_string(max_iter_) + " iterations");
-    return {false, max_iter_, std::sqrt(dot(r, r))};
+    r_vec = Vector(r);
+    return {false, max_iter_, r_vec.norm()};
 }
 
 }  // namespace fem

@@ -50,6 +50,9 @@ public:
     void zero() { fill(0.0); }
     
     // ═══ 向量运算 ═══
+    // 一元负号: -v
+    Vector operator-() const;
+    
     // v + w
     Vector operator+(const Vector& other) const;
     // v - w
@@ -70,6 +73,9 @@ public:
     
     // 点积: v · w
     Real dot(const Vector& other) const;
+    
+    // Hadamard 乘积（逐元素乘法）: z = x .* y
+    Vector hadamard(const Vector& other) const;
     
     // 范数
     Real norm() const;           // L2 范数
