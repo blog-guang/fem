@@ -1,4 +1,4 @@
-#include "solver/cg.h"
+#include "math/cg.h"
 #include "core/logger.h"
 #include <cmath>
 

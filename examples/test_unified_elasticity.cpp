@@ -9,7 +9,7 @@
 #include "assembly/assembler.h"
 #include "physics/elasticity_unified.h"
 #include "material/isotropic_elastic.h"
-#include "solver/cg.h"
+#include "math/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
 #include <iostream>

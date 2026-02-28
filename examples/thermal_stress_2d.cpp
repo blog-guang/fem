@@ -31,7 +31,7 @@
 #include "assembly/assembler.h"
 #include "physics/heat.h"
 #include "physics/elasticity_v2.h"
-#include "solver/cg.h"
+#include "math/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
 #include "core/logger.h"

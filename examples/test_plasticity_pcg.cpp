@@ -20,8 +20,8 @@
 #include "physics/elasticity_unified.h"
 #include "material/j2_plasticity.h"
 #include "material/isotropic_elastic.h"
-#include "solver/cg.h"
-#include "solver/pcg.h"
+#include "math/cg.h"
+#include "math/pcg.h"
 #include "core/logger.h"
 #include "core/timer.h"
 #include <iostream>

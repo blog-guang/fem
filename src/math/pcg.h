@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "solver/solver.h"
+#include "math/solver.h"
 #include <memory>
 
 namespace fem {

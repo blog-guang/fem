@@ -1,6 +1,6 @@
-#include "solver/solver.h"
-#include "solver/cg.h"
-#include "solver/bicgstab.h"
+#include "math/solver.h"
+#include "math/cg.h"
+#include "math/bicgstab.h"
 #include <stdexcept>
 
 namespace fem {

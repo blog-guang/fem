@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "solver/solver.h"
+#include "math/solver.h"
 #include "math/sparse_matrix.h"
 
 using namespace fem;

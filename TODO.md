@@ -82,7 +82,13 @@
   - 性能：迭代次数减少 62%（208 → 79）
   - 加速比：2.63x（相对于 CG），2.37x（相对于 Jacobi）
   - 5/5 测试通过，性能对比示例完成
-- [ ] 预条件器 (AMG)
+- [x] **预条件器 AMG (AMGCL)** ✅ (2026-02-28)
+  - 集成 AMGCL 库（git submodule）
+  - Smoothed aggregation 粗化策略
+  - 使用 AMGCL_NO_BOOST（无 Boost 依赖）
+  - 性能：100x100 网格，12 次迭代（CG: 208）
+  - 加速比：17.33x（迭代），2.05x（时间）
+  - 4/4 测试通过，大规模问题性能最优
 - [x] **非线性求解器 (Newton-Raphson)** ✅ (2026-02-25)
 - [ ] 瞬态分析 (时间积分)
 
@@ -97,15 +103,15 @@
 **✅ 已完成 (Phase 2.1-2.5, 2026-02-25):**
 - ✓ Mesh V2 架构 (Element/Material/Mesh/Model)
 - ✓ 数学库 (Vector, DenseMatrix, SparseMatrixCSR/COO, 格式转换)
-- ✓ 求解器 (CG, PCG + Jacobi/SSOR/ILU预条件器)
+- ✓ 求解器 (CG, PCG + Jacobi/SSOR/ILU/AMG 预条件器)
 - ✓ `mesh_generator` (4种网格类型, 2D/3D边界识别)
 - ✓ **Assembler** (多自由度场支持, Dirichlet BC, Neumann BC) ✅
 - ✓ **physics/heat** (HeatConduction, Tri3单元) ✅
 - ✓ **physics/elasticity_v2** (Elasticity2D, 平面应力/应变) ✅
 - ✓ **io/vtk_writer** (单Mesh输出, 点数据, 单元数据) ✅
-- ✓ **174/174 测试全部通过** ✅
+- ✓ **178/178 测试全部通过** ✅
 - ✓ **9个示例程序验证通过** ✅
-  - benchmark_preconditioners (ILU vs Jacobi vs SSOR vs CG)
+  - benchmark_preconditioners (AMG/ILU/SSOR/Jacobi/CG 性能对比)
   - Poisson, Heat, Elasticity, Cantilever Beam, **Thermal-Stress Coupling**
 - ✓ GoogleTest submodule 集成
 - ✓ 代码清理 (删除 1188+ 行旧代码)
@@ -133,15 +139,26 @@
   - 加速比：2.63x（相对于 CG），2.37x（相对于 Jacobi）
   - 5/5 测试通过
   - benchmark_preconditioners 性能对比示例
+
+**✅ Phase 3.3 完成 (2026-02-28):**
+- ✓ **AMG 预条件器（AMGCL）** ✅
+  - 集成 AMGCL 库（git submodule）
+  - AMGPreconditioner 类（PIMPL 模式）
+  - Smoothed aggregation + SPAI0 relaxation
+  - 无 Boost 依赖（AMGCL_NO_BOOST）
+  - 性能：100x100 网格，迭代次数 12（CG: 208，ILU: 79）
+  - 加速比：17.33x（迭代），2.05x（时间）
+  - 4/4 测试通过
+  - benchmark 更新（CG/Jacobi/SSOR/ILU/AMG 对比）
   
 **当前任务 (Phase 3, 2026-02-28):**
 1. **高阶单元** (Tri6, Quad8)
    - 更高精度
    - 更好的应力计算
 
-2. **预条件器优化** (AMG)
-   - 代数多重网格
-   - 更适合大规模问题
+2. **瞬态分析**
+   - 时间积分（显式/隐式）
+   - 动力学问题
 
 **短期 (Phase 2.5-3.0):**
 - 文档完善 (API 文档、教程)

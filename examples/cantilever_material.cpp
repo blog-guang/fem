@@ -13,7 +13,7 @@
 #include "physics/elasticity_material.h"
 #include "material/isotropic_elastic.h"
 #include "material/j2_plasticity.h"
-#include "solver/cg.h"
+#include "math/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
 #include "core/logger.h"

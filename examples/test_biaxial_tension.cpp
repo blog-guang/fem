@@ -22,7 +22,7 @@
 #include "physics/elasticity_unified.h"
 #include "material/j2_plasticity.h"
 #include "material/isotropic_elastic.h"
-#include "solver/pcg.h"
+#include "math/pcg.h"
 #include "core/logger.h"
 #include <iostream>
 #include <iomanip>

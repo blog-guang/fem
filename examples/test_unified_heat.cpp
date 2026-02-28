@@ -8,7 +8,7 @@
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
 #include "physics/heat_unified.h"
-#include "solver/cg.h"
+#include "math/cg.h"
 #include "io/vtk_writer.h"
 #include "core/timer.h"
 #include <iostream>

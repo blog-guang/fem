@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "solver/newton_raphson.h"
+#include "math/newton_raphson.h"
 #include "math/sparse_matrix.h"
 
 using namespace fem;

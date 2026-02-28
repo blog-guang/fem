@@ -41,12 +41,12 @@ add_library(fem STATIC
     postprocess/post_processor_incremental.cpp
     # IO
     io/vtk_writer.cpp
-    # Solver
-    solver/solver.cpp
-    solver/cg.cpp
-    solver/pcg.cpp
-    solver/bicgstab.cpp
-    solver/newton_raphson.cpp
+    # Math - Linear Solvers
+    math/solver.cpp
+    math/cg.cpp
+    math/pcg.cpp
+    math/bicgstab.cpp
+    math/newton_raphson.cpp
 )
 
 target_include_directories(fem PUBLIC

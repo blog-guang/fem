@@ -21,7 +21,7 @@
 #include "assembly/assembler.h"
 #include "physics/elasticity_unified.h"
 #include "material/j2_plasticity.h"
-#include "solver/newton_raphson.h"
+#include "math/newton_raphson.h"
 #include "core/logger.h"
 #include <iostream>
 #include <fstream>

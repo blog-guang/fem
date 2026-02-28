@@ -1,4 +1,4 @@
-#include "solver/newton_raphson.h"
+#include "math/newton_raphson.h"
 #include "core/logger.h"
 #include <cmath>
 #include <algorithm>

@@ -19,8 +19,8 @@
  * 材料：线弹性 (σ = E*ε)
  */
 
-#include "solver/newton_raphson.h"
-#include "solver/cg.h"
+#include "math/newton_raphson.h"
+#include "math/cg.h"
 #include "math/sparse_matrix.h"
 #include "core/logger.h"
 #include "core/timer.h"

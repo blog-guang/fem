@@ -15,7 +15,7 @@
 #include "mesh/model.h"
 #include "mesh/mesh_generator.h"
 #include "assembly/assembler.h"
-#include "solver/cg.h"
+#include "math/cg.h"
 #include "core/timer.h"
 #include "core/logger.h"
 

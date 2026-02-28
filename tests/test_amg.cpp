@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "solver/pcg.h"
+#include "math/pcg.h"
 #include "math/sparse_matrix.h"
 #include <vector>
 

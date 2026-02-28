@@ -7,8 +7,8 @@
  */
 
 #include "math/sparse_matrix.h"
-#include "solver/cg.h"
-#include "solver/pcg.h"
+#include "math/cg.h"
+#include "math/pcg.h"
 #include "core/timer.h"
 #include "core/types.h"
 #include <iostream>

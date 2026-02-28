@@ -2,7 +2,7 @@
  * pcg.cpp - PCG Solver Implementation
  */
 
-#include "solver/pcg.h"
+#include "math/pcg.h"
 #include "core/logger.h"
 #include <cmath>
 #include <algorithm>

@@ -16,7 +16,7 @@
 #include "core/types.h"
 #include "math/sparse_matrix.h"
 #include "math/vector.h"
-#include "solver/cg.h"
+#include "math/cg.h"
 
 #include <functional>
 #include <vector>
