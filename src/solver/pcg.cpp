@@ -144,6 +144,166 @@ void SSORPreconditioner::apply(const std::vector<Real>& r, std::vector<Real>& z)
 }
 
 // ═══════════════════════════════════════════════════════════
+// ILU(0) 预条件器
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 在 CSR 矩阵的第 row 行中查找列 col 的索引
+ * 返回 idx 使得 col_indices[idx] == col
+ * 如果不存在，返回 -1
+ */
+static Index find_col_in_row(const SparseMatrixCSR& mat, Index row, Index col) {
+    const auto& row_ptr = mat.row_ptr();
+    const auto& col_idx = mat.col_indices();
+    
+    for (Index idx = row_ptr[row]; idx < row_ptr[row + 1]; ++idx) {
+        if (col_idx[idx] == col) {
+            return idx;
+        }
+    }
+    return -1;  // 未找到
+}
+
+void ILUPreconditioner::build(const SparseMatrixCSR& K) {
+    // 1. 复制 K 到 LU_（将原位修改为 L*U）
+    LU_ = K;
+    
+    std::size_t n = LU_.rows();
+    auto& values = const_cast<std::vector<Real>&>(LU_.values());
+    const auto& row_ptr = LU_.row_ptr();
+    const auto& col_idx = LU_.col_indices();
+    
+    // 2. ILU(0) 分解
+    // 对每一行 i 进行消元
+    for (std::size_t i = 0; i < n; ++i) {
+        // 找到第 i 行的对角元素
+        Index diag_idx = find_col_in_row(LU_, i, i);
+        
+        if (diag_idx < 0 || std::abs(values[diag_idx]) < 1e-30) {
+            FEM_WARN("ILU(0): row " + std::to_string(i) + 
+                    " has near-zero diagonal, using 1.0");
+            if (diag_idx >= 0) {
+                values[diag_idx] = 1.0;
+            }
+            continue;
+        }
+        
+        Real diag = values[diag_idx];
+        
+        // 对第 i 行中所有列 k < i 的元素（下三角部分）
+        for (Index k_idx = row_ptr[i]; k_idx < row_ptr[i + 1]; ++k_idx) {
+            Index k = col_idx[k_idx];
+            
+            if (k >= i) break;  // 只处理下三角
+            
+            // L(i, k) = A(i, k) / U(k, k)
+            Index k_diag_idx = find_col_in_row(LU_, k, k);
+            
+            if (k_diag_idx < 0 || std::abs(values[k_diag_idx]) < 1e-30) {
+                continue;  // 跳过病态行
+            }
+            
+            values[k_idx] /= values[k_diag_idx];
+            Real L_ik = values[k_idx];
+            
+            // 更新 U 部分：A(i, j) -= L(i, k) * U(k, j)
+            // 对第 i 行中所有列 j > k 的元素
+            for (Index j_idx = row_ptr[i]; j_idx < row_ptr[i + 1]; ++j_idx) {
+                Index j = col_idx[j_idx];
+                
+                if (j <= k) continue;  // 只更新 j > k 的部分
+                
+                // 查找 U(k, j)
+                Index kj_idx = find_col_in_row(LU_, k, j);
+                
+                if (kj_idx >= 0) {
+                    // A(i, j) -= L(i, k) * U(k, j)
+                    values[j_idx] -= L_ik * values[kj_idx];
+                }
+            }
+        }
+    }
+    
+    FEM_INFO("ILU(0) preconditioner built: " + std::to_string(n) + " DOFs");
+}
+
+void ILUPreconditioner::forward_solve(const std::vector<Real>& r, 
+                                       std::vector<Real>& y) const {
+    // 求解 L*y = r
+    // L 是单位下三角矩阵（对角线为 1）
+    
+    std::size_t n = r.size();
+    y.resize(n);
+    
+    const auto& row_ptr = LU_.row_ptr();
+    const auto& col_idx = LU_.col_indices();
+    const auto& values = LU_.values();
+    
+    for (std::size_t i = 0; i < n; ++i) {
+        Real sum = r[i];
+        
+        // sum -= L(i, j) * y[j]  (j < i)
+        for (Index idx = row_ptr[i]; idx < row_ptr[i + 1]; ++idx) {
+            Index j = col_idx[idx];
+            
+            if (j >= i) break;  // 只处理下三角
+            
+            sum -= values[idx] * y[j];
+        }
+        
+        y[i] = sum;  // L 的对角线为 1
+    }
+}
+
+void ILUPreconditioner::backward_solve(const std::vector<Real>& y, 
+                                        std::vector<Real>& z) const {
+    // 求解 U*z = y
+    // U 是上三角矩阵
+    
+    std::size_t n = y.size();
+    z.resize(n);
+    
+    const auto& row_ptr = LU_.row_ptr();
+    const auto& col_idx = LU_.col_indices();
+    const auto& values = LU_.values();
+    
+    for (std::size_t i = n; i-- > 0;) {
+        Real sum = y[i];
+        Real diag = 1.0;
+        
+        // sum -= U(i, j) * z[j]  (j > i)
+        // 同时找到对角元素 U(i, i)
+        for (Index idx = row_ptr[i]; idx < row_ptr[i + 1]; ++idx) {
+            Index j = col_idx[idx];
+            
+            if (j == i) {
+                diag = values[idx];
+            } else if (j > i) {
+                sum -= values[idx] * z[j];
+            }
+        }
+        
+        if (std::abs(diag) < 1e-30) {
+            z[i] = sum;  // 避免除零
+        } else {
+            z[i] = sum / diag;
+        }
+    }
+}
+
+void ILUPreconditioner::apply(const std::vector<Real>& r, std::vector<Real>& z) const {
+    // 求解 M^{-1} * r，其中 M = L * U
+    // 
+    // 分两步：
+    // 1. 前向替换: L * y = r
+    // 2. 后向替换: U * z = y
+    
+    std::vector<Real> y;
+    forward_solve(r, y);
+    backward_solve(y, z);
+}
+
+// ═══════════════════════════════════════════════════════════
 // PCG 求解器
 // ═══════════════════════════════════════════════════════════
 
@@ -166,6 +326,8 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         precond_ = std::make_unique<JacobiPreconditioner>();
     } else if (precond_type_ == "ssor") {
         precond_ = std::make_unique<SSORPreconditioner>(omega_);
+    } else if (precond_type_ == "ilu") {
+        precond_ = std::make_unique<ILUPreconditioner>();
     } else {
         // 无预条件器（等价于 CG）
         precond_ = nullptr;

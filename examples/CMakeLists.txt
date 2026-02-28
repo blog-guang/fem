@@ -84,3 +84,8 @@ target_include_directories(test_plasticity_verification PRIVATE ${CMAKE_SOURCE_D
 add_executable(test_reaction_forces test_reaction_forces.cpp)
 target_link_libraries(test_reaction_forces PRIVATE fem)
 target_include_directories(test_reaction_forces PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# 预条件器性能对比
+add_executable(benchmark_preconditioners benchmark_preconditioners.cpp)
+target_link_libraries(benchmark_preconditioners PRIVATE fem)
+target_include_directories(benchmark_preconditioners PRIVATE ${CMAKE_SOURCE_DIR}/src)

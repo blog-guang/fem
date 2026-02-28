@@ -84,6 +84,46 @@ private:
 };
 
 /**
+ * ILU(0) (不完全 LU 分解) 预条件器
+ * 
+ * A ≈ L * U (保持原始稀疏模式，不产生新的非零元)
+ * 
+ * 算法：
+ * 1. 复制 A 的非零模式到 LU
+ * 2. 对 LU 进行原位 ILU(0) 分解
+ * 3. 应用时求解 L*U*z = r (前向+后向替换)
+ * 
+ * 优点：
+ * - 收敛速度快（通常比 Jacobi 快 2-5 倍）
+ * - 适合大型稀疏系统
+ * - 内存开销小（仅存储原矩阵非零元）
+ * 
+ * 缺点：
+ * - 构建时间较长
+ * - 串行算法
+ * - 可能不稳定（需要对角占优）
+ */
+class ILUPreconditioner : public Preconditioner {
+public:
+    void apply(const std::vector<Real>& r, std::vector<Real>& z) const override;
+    void build(const SparseMatrixCSR& K) override;
+
+private:
+    SparseMatrixCSR LU_;  // 存储 L 和 U (L 的对角线隐式为 1)
+    
+    /**
+     * 前向替换: 求解 L*y = r
+     * (L 的对角线为 1)
+     */
+    void forward_solve(const std::vector<Real>& r, std::vector<Real>& y) const;
+    
+    /**
+     * 后向替换: 求解 U*z = y
+     */
+    void backward_solve(const std::vector<Real>& y, std::vector<Real>& z) const;
+};
+
+/**
  * 预条件共轭梯度求解器 (PCG)
  * 
  * 算法：

@@ -20,6 +20,7 @@ add_executable(fem_tests
     test_io.cpp
     test_newton_raphson.cpp
     test_data.cpp
+    test_ilu.cpp
 )
 
 target_link_libraries(fem_tests PRIVATE fem gtest_main)
