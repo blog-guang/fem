@@ -184,8 +184,8 @@ public:
     explicit PCGSolver(const std::string& precond_type = "jacobi", Real omega = 1.0);
     
     SolveResult solve(const SparseMatrixCSR& K,
-                     const std::vector<Real>& F,
-                     std::vector<Real>& x) override;
+                     const Vector& F,
+                     Vector& x) override;
 
 private:
     std::string precond_type_;

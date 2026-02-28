@@ -1,65 +1,68 @@
+/**
+ * bicgstab.cpp - BiCGSTAB Solver (Refactored with Vector)
+ */
+
 #include "math/bicgstab.h"
+#include "math/vector.h"
 #include "core/logger.h"
-#include <cmath>
 
 namespace fem {
 
-static Real dot(const std::vector<Real>& a, const std::vector<Real>& b) {
-    Real s = 0.0;
-    for (std::size_t i = 0; i < a.size(); ++i) s += a[i] * b[i];
-    return s;
-}
-
 SolveResult BiCGSTABSolver::solve(const SparseMatrixCSR& K,
-                                   const std::vector<Real>& F,
-                                   std::vector<Real>& x)
+                                   const Vector& F,
+                                   Vector& x)
 {
     std::size_t n = F.size();
-    x.assign(n, 0.0);
+    x = Vector(n, 0.0);
 
-    std::vector<Real> r     = F;       // r = b - Ax, x0=0 → r=b
-    std::vector<Real> r_hat = r;       // 任意, 常取 r0
+    Vector r     = F;               // r = b - Ax, x0=0 → r=b
+    Vector r_hat = r;               // 任意, 常取 r0
     Real   rho   = 1.0;
     Real   alpha = 1.0;
     Real   omega = 1.0;
 
-    std::vector<Real> v(n, 0.0), p(n, 0.0), s(n), t(n);
+    Vector v(n, 0.0), p(n, 0.0), s(n), t(n);
 
     for (std::size_t iter = 0; iter < max_iter_; ++iter) {
-        Real rho_new = dot(r_hat, r);
+        Real rho_new = r_hat.dot(r);
         if (std::abs(rho_new) < 1e-300) {
-            return {false, iter, std::sqrt(dot(r, r))};
+            return {false, iter, r.norm()};
         }
 
         Real beta = (rho_new / rho) * (alpha / omega);
         rho = rho_new;
 
-        for (std::size_t i = 0; i < n; ++i)
-            p[i] = r[i] + beta * (p[i] - omega * v[i]);
+        // p = r + β * (p - ω * v)
+        p = r + beta * (p - omega * v);
 
+        // v = K * p
         K.matvec(p.data(), v.data());
-        alpha = rho / dot(r_hat, v);
+        
+        alpha = rho / r_hat.dot(v);
 
-        for (std::size_t i = 0; i < n; ++i)
-            s[i] = r[i] - alpha * v[i];
+        // s = r - α * v
+        s = r - alpha * v;
 
-        Real s_norm = std::sqrt(dot(s, s));
+        Real s_norm = s.norm();
         if (s_norm < tol_) {
-            for (std::size_t i = 0; i < n; ++i) x[i] += alpha * p[i];
+            x += alpha * p;
             FEM_INFO("BiCGSTAB converged: iter=" + std::to_string(iter + 1) +
                      " residual=" + fmt_sci(s_norm));
             return {true, iter + 1, s_norm};
         }
 
+        // t = K * s
         K.matvec(s.data(), t.data());
-        omega = dot(t, s) / dot(t, t);
+        
+        omega = t.dot(s) / t.dot(t);
 
-        for (std::size_t i = 0; i < n; ++i) {
-            x[i] += alpha * p[i] + omega * s[i];
-            r[i]  = s[i] - omega * t[i];
-        }
+        // x += α*p + ω*s
+        x += alpha * p + omega * s;
+        
+        // r = s - ω*t
+        r = s - omega * t;
 
-        Real res = std::sqrt(dot(r, r));
+        Real res = r.norm();
         if (res < tol_) {
             FEM_INFO("BiCGSTAB converged: iter=" + std::to_string(iter + 1) +
                      " residual=" + fmt_sci(res));
@@ -68,7 +71,7 @@ SolveResult BiCGSTABSolver::solve(const SparseMatrixCSR& K,
     }
 
     FEM_WARN("BiCGSTAB did not converge in " + std::to_string(max_iter_) + " iterations");
-    return {false, max_iter_, std::sqrt(dot(r, r))};
+    return {false, max_iter_, r.norm()};
 }
 
 }  // namespace fem

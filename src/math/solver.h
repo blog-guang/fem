@@ -2,7 +2,9 @@
 
 #include "core/types.h"
 #include "math/sparse_matrix.h"
+#include "math/vector.h"
 #include <memory>
+#include <vector>
 
 namespace fem {
 
@@ -19,9 +21,15 @@ class LinearSolver {
 public:
     virtual ~LinearSolver() = default;
 
+    // 新接口：使用 Vector
     virtual SolveResult solve(const SparseMatrixCSR& K,
-                              const std::vector<Real>& F,
-                              std::vector<Real>& x) = 0;
+                              const Vector& F,
+                              Vector& x) = 0;
+    
+    // 兼容旧接口：std::vector（内部转换为 Vector）
+    SolveResult solve(const SparseMatrixCSR& K,
+                      const std::vector<Real>& F,
+                      std::vector<Real>& x);
 
     void set_tol(Real tol)              { tol_ = tol; }
     void set_max_iter(std::size_t iter) { max_iter_ = iter; }

@@ -177,7 +177,7 @@ int main() {
     const auto& K_struct = struct_assembler.matrix();
     const auto& F_struct = struct_assembler.rhs();
     
-    std::vector<Real> u(F_struct.size(), 0.0);  // 位移场
+    Vector u(F_struct.size(), 0.0);  // 位移场
     
     CGSolver struct_solver;
     struct_solver.set_tol(1e-8);

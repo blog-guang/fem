@@ -66,9 +66,9 @@ int main() {
         
         const auto& K = assembler.matrix();
         const auto& F = assembler.rhs();
-        std::vector<Real> u(F.size(), 0.0);
+        Vector u(F.size(), 0.0);
         
-        auto result = solver.solve(K, F.raw(), u);
+        auto result = solver.solve(K, F, u);
         Real t_solve = timer.elapsed_ms();
         
         // 检查结果
@@ -133,9 +133,9 @@ int main() {
         
         const auto& K = assembler.matrix();
         const auto& F = assembler.rhs();
-        std::vector<Real> u(F.size(), 0.0);
+        Vector u(F.size(), 0.0);
         
-        auto result = solver.solve(K, F.raw(), u);
+        auto result = solver.solve(K, F, u);
         Real t_solve = timer.elapsed_ms();
         
         Real u_max = *std::max_element(u.begin(), u.end());
@@ -199,9 +199,9 @@ int main() {
         
         const auto& K = assembler.matrix();
         const auto& F = assembler.rhs();
-        std::vector<Real> u(F.size(), 0.0);
+        Vector u(F.size(), 0.0);
         
-        auto result = solver.solve(K, F.raw(), u);
+        auto result = solver.solve(K, F, u);
         Real t_solve = timer.elapsed_ms();
         
         Real u_max = *std::max_element(u.begin(), u.end());

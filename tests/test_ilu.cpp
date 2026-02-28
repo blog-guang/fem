@@ -94,7 +94,7 @@ TEST(ILUTest, PCGSolveWithILU) {
     K.set_data(5, 5, std::move(row_ptr), std::move(col_idx), std::move(values));
     
     std::vector<Real> F = {1.0, 1.0, 1.0, 1.0, 1.0};
-    std::vector<Real> x(5);
+    Vector x(5);
     
     // 使用 ILU 预条件器求解
     PCGSolver solver_ilu("ilu");
@@ -145,7 +145,7 @@ TEST(ILUTest, CompareWithJacobi) {
     K.set_data(n, n, std::move(row_ptr), std::move(col_idx), std::move(values));
     
     std::vector<Real> F(n, 1.0);
-    std::vector<Real> x_jacobi(n), x_ilu(n);
+    Vector x_jacobi(n), x_ilu(n);
     
     // Jacobi 预条件
     PCGSolver solver_jacobi("jacobi");
@@ -202,7 +202,7 @@ TEST(ILUTest, LargeSystem) {
     K.set_data(n, n, std::move(row_ptr), std::move(col_idx), std::move(values));
     
     std::vector<Real> F(n, 1.0);
-    std::vector<Real> x(n);
+    Vector x(n);
     
     PCGSolver solver("ilu");
     solver.set_tol(1e-10);

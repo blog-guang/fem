@@ -377,10 +377,10 @@ PCGSolver::PCGSolver(const std::string& precond_type, Real omega)
 }
 
 SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
-                              const std::vector<Real>& F,
-                              std::vector<Real>& x) {
+                              const Vector& F,
+                              Vector& x) {
     std::size_t n = F.size();
-    x.assign(n, 0.0);
+    x = Vector(n, 0.0);
     
     // 构建预条件器
     if (precond_type_ == "jacobi") {
@@ -400,11 +400,12 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         precond_->build(K);
     }
     
-    // 初始化（使用 Vector 包装）
-    std::vector<Real> r = F;        // r0 = F - K*x0 = F (因为 x0 = 0)
-    std::vector<Real> z(n);         // z = M^{-1} * r
-    std::vector<Real> p(n);         // 搜索方向
-    std::vector<Real> Ap(n);        // A * p
+    // 初始化
+    // 注意：预条件器仍然使用 std::vector（性能考虑）
+    std::vector<Real> r(F.data(), F.data() + n);  // r0 = F - K*x0 = F (因为 x0 = 0)
+    std::vector<Real> z(n);                       // z = M^{-1} * r
+    std::vector<Real> p(n);                       // 搜索方向
+    std::vector<Real> Ap(n);                      // A * p
     
     // z0 = M^{-1} * r0
     if (precond_) {
@@ -440,14 +441,11 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         Real alpha = rz / pAp;
         
         // x_{k+1} = x_k + α * p （使用 Vector 运算符）
-        Vector x_vec(x);
-        x_vec += alpha * p_vec;
-        x.assign(x_vec.data(), x_vec.data() + n);
+        x += alpha * p_vec;
         
         // r_{k+1} = r_k - α * Ap （使用 Vector 运算符）
-        r_vec = Vector(r);
         r_vec -= alpha * Ap_vec;
-        r.assign(r_vec.data(), r_vec.data() + n);
+        r.assign(r_vec.data(), r_vec.data() + n);  // 同步到 std::vector（预条件器需要）
         
         // 检查收敛
         Real r_norm = r_vec.norm();

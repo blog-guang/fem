@@ -204,9 +204,9 @@ int main() {
             
             const auto& K = assembler.matrix();
             const auto& F = assembler.rhs();
-            std::vector<Real> u(F.size(), 0.0);
+            Vector u(F.size(), 0.0);
             
-            solver.solve(K, F.raw(), u);
+            solver.solve(K, F, u);
             
             // 简化：τ = G*γ
             Real tau_elastic = analytical.G * gamma;
@@ -255,9 +255,9 @@ int main() {
             
             const auto& K = assembler.matrix();
             const auto& F = assembler.rhs();
-            std::vector<Real> u(F.size(), 0.0);
+            Vector u(F.size(), 0.0);
             
-            solver.solve(K, F.raw(), u);
+            solver.solve(K, F, u);
             
             // 简化估计
             Real tau_plastic;

@@ -45,6 +45,12 @@ public:
     std::vector<Real>& raw() { return data_; }
     const std::vector<Real>& raw() const { return data_; }
     
+    // ═══ 迭代器 ═══
+    auto begin() { return data_.begin(); }
+    auto end() { return data_.end(); }
+    auto begin() const { return data_.begin(); }
+    auto end() const { return data_.end(); }
+    
     // ═══ 赋值 ═══
     void fill(Real value) { std::fill(data_.begin(), data_.end(), value); }
     void zero() { fill(0.0); }

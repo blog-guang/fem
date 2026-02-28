@@ -145,6 +145,12 @@ void VTKWriter::add_point_scalar(const std::string& name,
     FEM_INFO("Added point scalar: " + name);
 }
 
+void VTKWriter::add_point_scalar(const std::string& name, 
+                                 const Vector& data) {
+    // 委托给 std::vector 版本
+    add_point_scalar(name, data.raw());
+}
+
 void VTKWriter::add_point_vector(const std::string& name,
                                  const std::vector<Real>& data,
                                  Index dof) {

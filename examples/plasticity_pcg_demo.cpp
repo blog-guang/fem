@@ -218,11 +218,11 @@ int main() {
         // 求解
         const auto& K = assembler.matrix();
         const auto& F = assembler.rhs();
-        std::vector<Real> u(F.size(), 0.0);
+        Vector u(F.size(), 0.0);
         
         Timer timer;
         timer.start();
-        auto result = cg_solver.solve(K, F.raw(), u);
+        auto result = cg_solver.solve(K, F, u);
         timer.stop();
         double elapsed = timer.elapsed_s();
         
@@ -332,11 +332,11 @@ int main() {
         // 求解
         const auto& K = assembler.matrix();
         const auto& F = assembler.rhs();
-        std::vector<Real> u(F.size(), 0.0);
+        Vector u(F.size(), 0.0);
         
         Timer timer;
         timer.start();
-        auto result = pcg_solver.solve(K, F.raw(), u);
+        auto result = pcg_solver.solve(K, F, u);
         timer.stop();
         double elapsed = timer.elapsed_s();
         

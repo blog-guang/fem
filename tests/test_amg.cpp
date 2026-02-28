@@ -28,7 +28,7 @@ TEST(AMGTest, Simple5x5) {
     K.set_data(5, 5, std::move(row_ptr), std::move(col_idx), std::move(values));
     
     std::vector<Real> F = {1.0, 1.0, 1.0, 1.0, 1.0};
-    std::vector<Real> x(5);
+    Vector x(5);
     
     // 使用 AMG 预条件器求解
     PCGSolver solver_amg("amg");
@@ -63,7 +63,7 @@ TEST(AMGTest, CompareWithOthers) {
     SparseMatrixCSR K = coo_to_csr(coo);
     std::vector<Real> F(n, 1.0);
     
-    std::vector<Real> x_jacobi(n), x_ilu(n), x_amg(n);
+    Vector x_jacobi(n), x_ilu(n), x_amg(n);
     
     // Jacobi
     PCGSolver solver_jacobi("jacobi");
@@ -109,7 +109,7 @@ TEST(AMGTest, LargeSystem) {
     
     SparseMatrixCSR K = coo_to_csr(coo);
     std::vector<Real> F(n, 1.0);
-    std::vector<Real> x(n);
+    Vector x(n);
     
     PCGSolver solver("amg");
     solver.set_tol(1e-10);
@@ -155,7 +155,7 @@ TEST(AMGTest, Poisson2D) {
     
     SparseMatrixCSR K = coo_to_csr(coo);
     std::vector<Real> F(n, 1.0);
-    std::vector<Real> x(n);
+    Vector x(n);
     
     PCGSolver solver("amg");
     solver.set_tol(1e-8);

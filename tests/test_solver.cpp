@@ -23,7 +23,7 @@ TEST(CGTest, Solve_2x2) {
     coo.add(1,0,-1); coo.add(1,1, 2);
     auto K = coo_to_csr(coo);
     std::vector<Real> F = {1.0, 1.0};
-    std::vector<Real> x;
+    Vector x;
 
     auto solver = create_solver(SolverType::CG);
     auto res = solver->solve(K, F, x);
@@ -36,7 +36,7 @@ TEST(CGTest, Solve_2x2) {
 TEST(CGTest, Solve_3x3_Tridiag) {
     auto K = make_tridiag_3();
     std::vector<Real> F = {1.0, 0.0, 1.0};
-    std::vector<Real> x;
+    Vector x;
 
     auto solver = create_solver(SolverType::CG);
     auto res = solver->solve(K, F, x);
@@ -56,7 +56,7 @@ TEST(CGTest, Solve_Identity) {
     SparseMatrixCSR I = coo_to_csr(coo_I);
 
     std::vector<Real> F = {3.0, 7.0};
-    std::vector<Real> x;
+    Vector x;
 
     auto solver = create_solver(SolverType::CG);
     auto res = solver->solve(I, F, x);
@@ -74,7 +74,7 @@ TEST(BiCGSTABTest, Solve_2x2) {
     coo.add(1,0,-1); coo.add(1,1, 2);
     auto K = coo_to_csr(coo);
     std::vector<Real> F = {1.0, 1.0};
-    std::vector<Real> x;
+    Vector x;
 
     auto solver = create_solver(SolverType::BiCGSTAB);
     auto res = solver->solve(K, F, x);
@@ -94,7 +94,7 @@ TEST(BiCGSTABTest, Solve_3x3_NonSymmetric) {
     coo.add(2,0,1); coo.add(2,2,3);
     auto K = coo_to_csr(coo);
     std::vector<Real> F = {4.0, 3.0, 4.0};
-    std::vector<Real> x;
+    Vector x;
 
     auto solver = create_solver(SolverType::BiCGSTAB);
     auto res = solver->solve(K, F, x);

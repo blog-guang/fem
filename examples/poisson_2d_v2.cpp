@@ -130,7 +130,7 @@ int main() {
     SparseMatrixCSR K = assembler.matrix();
     const Vector& F = assembler.rhs();
     
-    std::vector<Real> F_std = F.raw();
+    std::vector<Real> F_std = F;
     std::vector<Real> u_std(F.size(), 0.0);
     
     FEM_INFO("System retrieved in: " + std::to_string(timer.elapsed_s()) + "s");

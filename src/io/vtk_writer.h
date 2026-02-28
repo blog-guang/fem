@@ -53,6 +53,13 @@ public:
      * @param data 数据向量 (大小应等于节点数)
      */
     void add_point_scalar(const std::string& name, const std::vector<Real>& data);
+    
+    /**
+     * 添加节点标量场数据 (Vector 版本)
+     * @param name 数据名称
+     * @param data Vector 数据
+     */
+    void add_point_scalar(const std::string& name, const Vector& data);
 
     /**
      * 添加节点矢量场数据

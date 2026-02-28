@@ -39,14 +39,17 @@ NewtonRaphsonResult NewtonRaphsonSolver::solve(NonlinearProblem& problem,
         // 2. 求解线性系统: K_t * du = -R （使用 Vector 一元负号）
         Vector R_vec(R);
         Vector neg_R_vec = -R_vec;
-        std::vector<Real> neg_R(neg_R_vec.data(), neg_R_vec.data() + n);
+        Vector du_vec(n);
         
         // 使用 CG 求解器求解线性系统
         CGSolver linear_solver;
         linear_solver.set_tol(1e-8);
         linear_solver.set_max_iter(10000);
         
-        auto linear_result = linear_solver.solve(K_t, neg_R, du);
+        auto linear_result = linear_solver.solve(K_t, neg_R_vec, du_vec);
+        
+        // 转换回 std::vector（后续代码需要）
+        du.assign(du_vec.data(), du_vec.data() + n);
         
         if (!linear_result.converged) {
             FEM_WARN("Newton-Raphson: Linear solver failed at iteration " + 
@@ -64,8 +67,7 @@ NewtonRaphsonResult NewtonRaphsonSolver::solve(NonlinearProblem& problem,
         
         // 4. 更新解: u_{n+1} = u_n + α * du （使用 Vector 运算符）
         Vector u_vec(u);
-        Vector du_vec(du);
-        u_vec += alpha * du_vec;
+        u_vec += alpha * du_vec;  // du_vec 已在上面定义
         u.assign(u_vec.data(), u_vec.data() + n);
         
         // 5. 计算新的残差（使用 Vector 计算范数）

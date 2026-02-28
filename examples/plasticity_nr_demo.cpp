@@ -90,7 +90,7 @@ public:
         K.matvec(u.data(), Ku.data());
         
         for (size_t i = 0; i < u.size(); ++i) {
-            R[i] = Ku[i] - F.raw()[i];
+            R[i] = Ku[i] - F[i];
         }
     }
     
@@ -239,7 +239,7 @@ int main() {
     nr_solver.set_params(nr_params);
     
     // 初始位移
-    std::vector<Real> u(mesh.num_nodes() * 2, 0.0);
+    Vector u(mesh.num_nodes() * 2, 0.0);
     
     // 结果记录
     std::vector<Real> strain_history, stress_history;

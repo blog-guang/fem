@@ -107,12 +107,12 @@ int main() {
     // ========== 求解 ==========
     const auto& K = assembler.matrix();
     const auto& F = assembler.rhs();
-    std::vector<Real> u(F.size(), 0.0);
+    Vector u(F.size(), 0.0);
 
     CGSolver cg_solver;
     cg_solver.set_tol(1e-8);
     cg_solver.set_max_iter(1000);
-    auto result = cg_solver.solve(K, F.raw(), u);
+    auto result = cg_solver.solve(K, F, u);
 
     if (!result.converged) {
         std::cerr << "❌ CG solver failed!\n";

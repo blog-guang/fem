@@ -103,13 +103,13 @@ int main() {
     const auto& K = assembler.matrix();
     const auto& F = assembler.rhs();
     
-    std::vector<Real> u(F.size(), 0.0);
+    Vector u(F.size(), 0.0);
     
     CGSolver solver;
     solver.set_tol(1e-8);
     solver.set_max_iter(10000);
     
-    auto result = solver.solve(K, F.raw(), u);
+    auto result = solver.solve(K, F, u);
     
     timer.stop();
     

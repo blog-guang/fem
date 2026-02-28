@@ -177,9 +177,9 @@ int main() {
         
         const auto& K = assembler.matrix();
         const auto& F = assembler.rhs();
-        std::vector<Real> u(F.size(), 0.0);
+        Vector u(F.size(), 0.0);
         
-        solver.solve(K, F.raw(), u);
+        solver.solve(K, F, u);
         
         // 使用增量后处理器更新应力和应变
         post_processor.update_stress_strain(u, data_manager);

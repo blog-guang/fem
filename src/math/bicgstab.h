@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math/solver.h"
+#include "math/vector.h"
 
 namespace fem {
 
@@ -8,8 +9,8 @@ namespace fem {
 class BiCGSTABSolver : public LinearSolver {
 public:
     SolveResult solve(const SparseMatrixCSR& K,
-                      const std::vector<Real>& F,
-                      std::vector<Real>& x) override;
+                      const Vector& F,
+                      Vector& x) override;
 };
 
 }  // namespace fem

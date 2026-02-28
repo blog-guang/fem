@@ -223,9 +223,9 @@ int main() {
             
             const auto& K = assembler.matrix();
             const auto& F = assembler.rhs();
-            std::vector<Real> u(F.size(), 0.0);
+            Vector u(F.size(), 0.0);
             
-            solver.solve(K, F.raw(), u);
+            solver.solve(K, F, u);
             
             // 简化：σ = E/(1-ν)*ε
             Real sigma_elastic = E / (1.0 - nu) * strain;
@@ -289,9 +289,9 @@ int main() {
             
             const auto& K = assembler.matrix();
             const auto& F = assembler.rhs();
-            std::vector<Real> u(F.size(), 0.0);
+            Vector u(F.size(), 0.0);
             
-            solver.solve(K, F.raw(), u);
+            solver.solve(K, F, u);
             
             // 简化估计
             Real sigma_plastic;
