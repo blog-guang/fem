@@ -22,14 +22,14 @@ add_fem_example(heat_2d)
 # 线弹性
 add_fem_example(elasticity_2d)
 
-# 悬臂梁（Neumann BC 演示）- 待更新到新 API
-# add_fem_example(cantilever_beam)
+# 悬臂梁（Neumann BC 演示）
+add_fem_example(cantilever_beam)
 
 # ══════════════════════════════════════════════════════════════════
 # 多物理场耦合
 # ══════════════════════════════════════════════════════════════════
 
-# 热-结构耦合 - 待更新到新 API
+# 热-结构耦合 - 待完善热载荷计算
 # add_fem_example(thermal_stress_2d)
 
 # ══════════════════════════════════════════════════════════════════
