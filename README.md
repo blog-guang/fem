@@ -276,7 +276,7 @@ fem/
 │   ├── data/          # 场数据管理 (FieldData, DataManager)
 │   ├── postprocess/   # 后处理 (PostProcessor)
 │   └── io/            # 输出 (VTKWriter)
-├── examples/          # 9个示例程序
+├── examples/          # 18个示例程序（核心演示）
 ├── tests/             # 178个单元测试
 ├── third_party/
 │   ├── googletest/    # GoogleTest (submodule)
