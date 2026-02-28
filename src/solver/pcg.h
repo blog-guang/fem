@@ -3,12 +3,13 @@
  * 
  * 预条件共轭梯度法求解器
  * 
- * 算法：PCG with Jacobi (diagonal) preconditioner
+ * 算法：PCG with various preconditioners
  * 
  * 预条件器选项：
  * - Jacobi (对角预条件器): M = diag(K)
  * - SSOR (对称超松弛): M = (D+L)D^{-1}(D+U)
  * - ILU(0) (不完全 LU 分解)
+ * - AMG (代数多重网格，使用 AMGCL 库)
  * 
  * 默认使用 Jacobi 预条件器（最简单且稳定）
  */
@@ -124,6 +125,35 @@ private:
 };
 
 /**
+ * AMG (代数多重网格) 预条件器
+ * 
+ * 使用 AMGCL 库实现
+ * 
+ * 优点：
+ * - 收敛速度非常快（O(N) 复杂度）
+ * - 适合大规模问题（百万级自由度）
+ * - 对网格质量不敏感
+ * - 自动构建多层网格
+ * 
+ * 缺点：
+ * - 构建时间较长
+ * - 内存开销较大
+ * - 需要 AMGCL 库
+ */
+class AMGPreconditioner : public Preconditioner {
+public:
+    AMGPreconditioner();
+    ~AMGPreconditioner();
+    
+    void apply(const std::vector<Real>& r, std::vector<Real>& z) const override;
+    void build(const SparseMatrixCSR& K) override;
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> pimpl_;  // PIMPL idiom to hide AMGCL headers
+};
+
+/**
  * 预条件共轭梯度求解器 (PCG)
  * 
  * 算法：
@@ -148,7 +178,7 @@ public:
     /**
      * 构造函数
      * 
-     * @param precond_type 预条件器类型 ("jacobi", "ssor", "none")
+     * @param precond_type 预条件器类型 ("jacobi", "ssor", "ilu", "amg", "none")
      * @param omega SSOR 松弛因子 (仅当 precond_type = "ssor" 时有效)
      */
     explicit PCGSolver(const std::string& precond_type = "jacobi", Real omega = 1.0);

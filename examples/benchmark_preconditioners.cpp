@@ -96,8 +96,9 @@ int main() {
               << std::setw(12) << "Jacobi"
               << std::setw(12) << "SSOR"
               << std::setw(12) << "ILU(0)"
+              << std::setw(12) << "AMG"
               << "\n";
-    std::cout << std::string(72, '-') << "\n";
+    std::cout << std::string(84, '-') << "\n";
     
     for (int n : sizes) {
         // 1. 生成矩阵
@@ -176,6 +177,22 @@ int main() {
             timer.stop();
             
             results.push_back({"ILU(0)", static_cast<int>(result.iterations), 
+                              timer.elapsed_ms()});
+        }
+        
+        // ─── AMG-PCG ───
+        {
+            std::vector<Real> x(N, 0.0);
+            PCGSolver solver("amg");
+            solver.set_tol(1e-8);
+            solver.set_max_iter(10000);
+            
+            Timer timer;
+            timer.start();
+            auto result = solver.solve(K, F, x);
+            timer.stop();
+            
+            results.push_back({"AMG", static_cast<int>(result.iterations), 
                               timer.elapsed_ms()});
         }
         
@@ -296,6 +313,26 @@ int main() {
         });
     }
     
+    // AMG
+    {
+        std::vector<Real> x(N, 0.0);
+        PCGSolver solver("amg");
+        solver.set_tol(1e-8);
+        solver.set_max_iter(10000);
+        
+        Timer timer;
+        timer.start();
+        auto result = solver.solve(K, F, x);
+        timer.stop();
+        
+        detailed_results.push_back({
+            "AMG-PCG",
+            static_cast<int>(result.iterations),
+            timer.elapsed_ms(),
+            result.residual
+        });
+    }
+    
     std::cout << std::left;
     std::cout << std::setw(14) << "求解器"
               << std::setw(12) << "迭代次数"
@@ -313,7 +350,7 @@ int main() {
     }
     
     // 计算加速比（相对于 CG）
-    if (detailed_results.size() >= 4) {
+    if (detailed_results.size() >= 5) {
         std::cout << "\n加速比（相对于 CG）:\n";
         
         for (std::size_t i = 1; i < detailed_results.size(); ++i) {
@@ -330,10 +367,11 @@ int main() {
     }
     
     std::cout << "\n结论:\n";
-    std::cout << "  • ILU(0) 在迭代次数和求解时间上都明显优于其他预条件器\n";
-    std::cout << "  • 对于大规模稀疏系统，ILU(0) 是推荐的预条件器\n";
-    std::cout << "  • SSOR 介于 Jacobi 和 ILU(0) 之间，但实现更复杂\n";
+    std::cout << "  • AMG 在大规模问题上性能最优（O(N) 复杂度）\n";
+    std::cout << "  • ILU(0) 在中等规模问题上性价比高\n";
+    std::cout << "  • SSOR 介于 Jacobi 和 ILU(0) 之间\n";
     std::cout << "  • Jacobi 最简单，但收敛速度较慢\n";
+    std::cout << "  • 推荐：中小规模用 ILU(0)，大规模用 AMG\n";
     std::cout << "\n";
     
     return 0;

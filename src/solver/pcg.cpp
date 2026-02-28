@@ -7,6 +7,17 @@
 #include <cmath>
 #include <algorithm>
 
+// AMGCL headers (仅在 .cpp 中包含)
+// 定义 AMGCL_NO_BOOST 以避免 Boost 依赖
+#define AMGCL_NO_BOOST
+#include <amgcl/backend/builtin.hpp>
+#include <amgcl/make_solver.hpp>
+#include <amgcl/amg.hpp>
+#include <amgcl/coarsening/smoothed_aggregation.hpp>
+#include <amgcl/relaxation/spai0.hpp>
+#include <amgcl/solver/cg.hpp>
+#include <amgcl/adapter/crs_tuple.hpp>
+
 namespace fem {
 
 // ═══════════════════════════════════════════════════════════
@@ -304,6 +315,73 @@ void ILUPreconditioner::apply(const std::vector<Real>& r, std::vector<Real>& z) 
 }
 
 // ═══════════════════════════════════════════════════════════
+// AMG 预条件器 (AMGCL)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * AMG 预条件器的内部实现类 (PIMPL)
+ * 
+ * 使用 AMGCL 的内置后端和 smoothed aggregation 粗化策略
+ */
+class AMGPreconditioner::Impl {
+public:
+    // AMGCL 类型定义
+    typedef amgcl::backend::builtin<double> Backend;
+    
+    typedef amgcl::amg<
+        Backend,
+        amgcl::coarsening::smoothed_aggregation,
+        amgcl::relaxation::spai0
+    > AMG;
+    
+    std::unique_ptr<AMG> amg;
+    std::size_t n;
+};
+
+AMGPreconditioner::AMGPreconditioner()
+    : pimpl_(std::make_unique<Impl>()) {
+}
+
+AMGPreconditioner::~AMGPreconditioner() = default;
+
+void AMGPreconditioner::build(const SparseMatrixCSR& K) {
+    pimpl_->n = K.rows();
+    
+    // 将 CSR 矩阵转换为 AMGCL 格式
+    // AMGCL 使用 boost::tie(n, ptr, col, val) 作为输入
+    // 但不使用 Boost 时，直接使用 adapter
+    
+    // 注意：AMGCL 需要 ptrdiff_t 类型的指针数组
+    std::vector<ptrdiff_t> ptr(K.row_ptr().begin(), K.row_ptr().end());
+    std::vector<ptrdiff_t> col(K.col_indices().begin(), K.col_indices().end());
+    std::vector<double> val(K.values().begin(), K.values().end());
+    
+    // 构建 AMG 层次结构
+    // 不使用 Boost property_tree，直接设置参数结构体
+    typename Impl::AMG::params prm;
+    prm.coarsening.aggr.eps_strong = 0.0;  // 强连接阈值
+    
+    // 使用 CRS tuple adapter
+    pimpl_->amg = std::make_unique<Impl::AMG>(
+        std::tie(pimpl_->n, ptr, col, val), 
+        prm
+    );
+    
+    FEM_INFO("AMG preconditioner built: " + std::to_string(pimpl_->n) + " DOFs");
+}
+
+void AMGPreconditioner::apply(const std::vector<Real>& r, std::vector<Real>& z) const {
+    // 使用 AMG V-cycle 作为预条件器
+    // z = M^{-1} * r
+    
+    z.resize(r.size());
+    std::fill(z.begin(), z.end(), 0.0);
+    
+    // AMGCL 的 apply 方法：执行一次 V-cycle
+    pimpl_->amg->apply(r, z);
+}
+
+// ═══════════════════════════════════════════════════════════
 // PCG 求解器
 // ═══════════════════════════════════════════════════════════
 
@@ -328,6 +406,8 @@ SolveResult PCGSolver::solve(const SparseMatrixCSR& K,
         precond_ = std::make_unique<SSORPreconditioner>(omega_);
     } else if (precond_type_ == "ilu") {
         precond_ = std::make_unique<ILUPreconditioner>();
+    } else if (precond_type_ == "amg") {
+        precond_ = std::make_unique<AMGPreconditioner>();
     } else {
         // 无预条件器（等价于 CG）
         precond_ = nullptr;
