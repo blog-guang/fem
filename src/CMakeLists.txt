@@ -33,6 +33,7 @@ add_library(fem STATIC
     assembly/assembler.cpp
     # Physics
     physics/physics_base.cpp
+    physics/physics_factory.cpp
     physics/heat_unified.cpp
     physics/elasticity_unified.cpp
     # Data (场数据管理)
