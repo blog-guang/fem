@@ -66,14 +66,67 @@ Vector ElasticityNonlinear::compute_internal_force(
     const Mesh& mesh,
     const Vector& u_current) const
 {
-    // TODO: 完整实现
-    // 当前返回零向量（待实现）
-    
     const auto& elem = mesh.element(elem_id);
     int num_nodes = elem.num_nodes();
     int elem_dofs = num_nodes * dimension_;
     
+    // 提取单元位移
+    Vector u_elem = extract_element_displacement(elem_id, mesh, u_current);
+    
+    // 获取节点坐标
+    std::vector<Vec3> coords = get_element_coords(elem_id, mesh);
+    
+    // 获取形函数
+    auto shape_func = shape::ShapeFunctionFactory::create(elem.type());
+    
+    // 获取高斯积分点
+    std::vector<Vec3> gauss_points;
+    std::vector<Real> weights;
+    int order = get_gauss_order(elem.type());
+    shape_func->getGaussPoints(order, gauss_points, weights);
+    
+    // 初始化内力向量
     Vector F_int(elem_dofs, 0.0);
+    
+    // 创建状态变量
+    constitutive::StateVariables state = material_->createState();
+    
+    // 高斯积分
+    for (std::size_t gp = 0; gp < gauss_points.size(); gp++) {
+        const Vec3& xi = gauss_points[gp];
+        Real w = weights[gp];
+        
+        // 计算形函数物理坐标导数
+        DenseMatrix dN_dx;
+        shape_func->computePhysicalDerivatives(xi, coords, dN_dx);
+        
+        // 计算雅可比行列式
+        DenseMatrix J_mat = shape_func->computeJacobian(xi, coords);
+        Real det_J = compute_jacobian_determinant(J_mat);
+        
+        if (det_J <= 0.0) {
+            throw std::runtime_error("Negative Jacobian in element " + 
+                                   std::to_string(elem_id));
+        }
+        
+        // 构造 B 矩阵
+        DenseMatrix B;
+        compute_B_matrix(dN_dx, num_nodes, B);
+        
+        // 计算应变（从单元位移）
+        Vector strain = B * u_elem;
+        
+        // 计算应力（通过材料本构）
+        Vector stress;
+        material_->computeStress(strain, stress, state);
+        
+        // F_int += w * det(J) * B^T * σ
+        Vector BT_sigma = B.transpose() * stress;
+        
+        for (int i = 0; i < elem_dofs; i++) {
+            F_int[i] += w * det_J * BT_sigma[i];
+        }
+    }
     
     return F_int;
 }
@@ -146,11 +199,11 @@ void ElasticityNonlinear::compute_material_stiffness(
         DenseMatrix B;
         compute_B_matrix(dN_dx, num_nodes, B);
         
-        // 获取材料切线刚度矩阵 D
-        // TODO: 需要根据当前应变状态计算
-        Vector strain(dimension_ == 3 ? 6 : 4, 0.0);  // 暂时使用零应变
-        DenseMatrix D;
+        // 计算当前点的应变（从单元位移）
+        Vector strain = B * u_elem;
         
+        // 获取材料切线刚度矩阵 D（基于当前应变状态）
+        DenseMatrix D;
         constitutive::StateVariables state = material_->createState();
         material_->computeTangent(strain, D, state);
         
@@ -205,10 +258,18 @@ void ElasticityNonlinear::compute_geometric_stiffness(
         DenseMatrix J_mat = shape_func->computeJacobian(xi, coords);
         Real det_J = compute_jacobian_determinant(J_mat);
         
-        // 计算当前点的应力
-        // TODO: 从应变计算应力
-        DenseMatrix sigma(3, 3);
-        sigma.fill(0.0);  // 暂时使用零应力
+        // 构造 B 矩阵并计算应变
+        DenseMatrix B;
+        compute_B_matrix(dN_dx, num_nodes, B);
+        Vector strain = B * u_elem;
+        
+        // 计算当前点的应力（Cauchy 应力）
+        Vector stress_voigt;
+        constitutive::StateVariables state = material_->createState();
+        material_->computeStress(strain, stress_voigt, state);
+        
+        // 转换为应力张量
+        DenseMatrix sigma = Kinematics::voigtToStress(stress_voigt, dimension_);
         
         // 构造 G 矩阵
         DenseMatrix G;
@@ -342,15 +403,35 @@ void ElasticityNonlinear::compute_G_matrix(
 DenseMatrix ElasticityNonlinear::compute_element_deformation_gradient(
     const std::vector<Vec3>& coords,
     const Vector& u_elem,
-    const DenseMatrix& dN_dxi,
+    const DenseMatrix& dN_dx,
     const std::vector<Real>& xi) const
 {
-    // TODO: 实现变形梯度计算
-    DenseMatrix F(3, 3);
-    F.fill(0.0);
-    F(0, 0) = 1.0;
-    F(1, 1) = 1.0;
-    F(2, 2) = 1.0;
+    // 计算位移梯度 ∇u
+    // ∂u_i/∂x_j = Σ_k (u_ik * ∂N_k/∂x_j)
+    
+    DenseMatrix grad_u(3, 3);
+    grad_u.fill(0.0);
+    
+    int num_nodes = coords.size();
+    
+    for (int i = 0; i < dimension_; i++) {         // 位移分量
+        for (int j = 0; j < dimension_; j++) {     // 坐标方向
+            Real sum = 0.0;
+            
+            for (int k = 0; k < num_nodes; k++) {  // 节点求和
+                int idx = k * dimension_ + i;      // 单元位移向量索引
+                
+                if (idx < u_elem.size()) {
+                    sum += u_elem[idx] * dN_dx(k, j);
+                }
+            }
+            
+            grad_u(i, j) = sum;
+        }
+    }
+    
+    // 变形梯度 F = I + ∇u
+    DenseMatrix F = Kinematics::deformationGradient(grad_u);
     
     return F;
 }
