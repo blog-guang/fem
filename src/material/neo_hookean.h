@@ -210,6 +210,14 @@ private:
         const Vector& E_voigt,
         Vector& stress,
         StateVariables& state) const;
+    
+    /**
+     * 从 Right Cauchy-Green 张量计算变形梯度
+     * 
+     * @param C Right Cauchy-Green 张量（C = F^T F）
+     * @return F 变形梯度（近似）
+     */
+    DenseMatrix compute_F_from_C(const DenseMatrix& C) const;
 };
 
 }  // namespace constitutive

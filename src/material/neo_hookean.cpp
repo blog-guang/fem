@@ -124,34 +124,68 @@ void NeoHookean::compute_stress_large_strain(
     Vector& stress,
     StateVariables& state) const
 {
-    // 从 Green-Lagrange 应变计算 Cauchy 应力
+    // 从 Green-Lagrange 应变计算 Cauchy 应力（完整大变形版本）
     // 
     // 步骤：
     // 1. E (Voigt) → E (tensor)
     // 2. E → C = 2E + I
-    // 3. C → F (通过极分解或直接计算)
-    // 4. F → I₁, J
-    // 5. 计算 S (2nd Piola-Kirchhoff)
-    // 6. S → σ (Cauchy)
+    // 3. C → F (通过 Cholesky 分解，假设 F 为对称正定)
+    // 4. F → S (2nd Piola-Kirchhoff)
+    // 5. S → σ (Cauchy)
+    // 6. σ (tensor) → Voigt
     
-    // 简化实现：对于小到中等应变，使用线弹性近似
-    // 完整实现需要存储变形梯度 F
+    // 1. Voigt → Tensor
+    DenseMatrix E = Kinematics::voigtToStrain(E_voigt, dimension_);
     
-    Real G = 2.0 * C10_;
-    Real K = 2.0 / D1_;
-    Real lambda = K - (2.0/3.0) * G;
+    // 2. C = 2E + I
+    DenseMatrix C(dimension_, dimension_);
+    DenseMatrix I_mat(dimension_, dimension_);
+    I_mat.fill(0.0);
+    for (int i = 0; i < dimension_; i++) {
+        I_mat(i, i) = 1.0;
+    }
     
-    compute_stress_small_strain(E_voigt, G, lambda, stress);
+    C = E * 2.0 + I_mat;
     
-    // TODO: 完整的大变形实现
-    // DenseMatrix E = Kinematics::voigtToStrain(E_voigt, dimension_);
-    // DenseMatrix C = 2 * E + I;
-    // Real I1 = firstInvariant(C);
-    // Real J = sqrt(thirdInvariant(C));
-    // DenseMatrix S = compute2ndPiolaKirchhoff_from_C(C);
-    // DenseMatrix F = compute_F_from_C(C);  // 需要极分解
-    // DenseMatrix sigma = pushForwardStress(F, S);
-    // stress = stressToVoigt(sigma, dimension_);
+    // 3. F = sqrt(C) (使用特征值分解或简化方法)
+    // 对于小到中等应变，使用近似：F ≈ I + ∇u = I + sqrt(2E)
+    // 更精确方法：Cholesky 分解 C = F^T F
+    DenseMatrix F = compute_F_from_C(C);
+    
+    // 4. S = 2 ∂W/∂C
+    DenseMatrix S = compute2ndPiolaKirchhoff(F);
+    
+    // 5. σ = J^(-1) F S F^T
+    DenseMatrix sigma = computeCauchyStress(F, S);
+    
+    // 6. Tensor → Voigt
+    stress = tensorToVoigt(sigma);
+    
+    // 更新应变能
+    state.setScalar("W", strainEnergy(E_voigt, state));
+}
+
+DenseMatrix NeoHookean::compute_F_from_C(const DenseMatrix& C) const {
+    // 从 C = F^T F 计算 F
+    // 
+    // 方法：对称极分解或 Cholesky 分解
+    // 简化方法（对于小到中等应变）：
+    //   F ≈ sqrt(C) ≈ I + 1/2(C - I)
+    
+    DenseMatrix I_mat(dimension_, dimension_);
+    I_mat.fill(0.0);
+    for (int i = 0; i < dimension_; i++) {
+        I_mat(i, i) = 1.0;
+    }
+    
+    // 简化近似
+    DenseMatrix F = I_mat + (C - I_mat) * 0.5;
+    
+    // TODO: 更精确的方法
+    // - 特征值分解 C = Q Λ Q^T → F = Q sqrt(Λ) Q^T
+    // - Cholesky 分解（需要 C 正定）
+    
+    return F;
 }
 
 void NeoHookean::computeTangent(

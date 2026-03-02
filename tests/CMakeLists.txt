@@ -29,6 +29,7 @@ add_executable(fem_tests
     test_neo_hookean.cpp
     test_kinematics.cpp
     test_elasticity_nonlinear.cpp
+    test_nonlinear_hyperelastic.cpp
 )
 
 target_link_libraries(fem_tests PRIVATE fem gtest_main)
