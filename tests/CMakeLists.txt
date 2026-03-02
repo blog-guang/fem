@@ -27,6 +27,7 @@ add_executable(fem_tests
     test_amg.cpp
     test_load_step.cpp
     test_neo_hookean.cpp
+    test_kinematics.cpp
 )
 
 target_link_libraries(fem_tests PRIVATE fem gtest_main)

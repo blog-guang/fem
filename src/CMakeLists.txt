@@ -5,6 +5,7 @@ add_library(fem STATIC
     # Core
     core/logger.cpp
     core/timer.cpp
+    core/kinematics.cpp
     # Math
     math/vector.cpp
     math/dense_matrix.cpp
