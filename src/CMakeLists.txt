@@ -56,6 +56,8 @@ add_library(fem STATIC
     math/pcg.cpp
     math/bicgstab.cpp
     math/newton_raphson.cpp
+    # Solver - Nonlinear Solvers (TODO: 完善后取消注释)
+    # solver/newton_raphson_solver.cpp
 )
 
 target_include_directories(fem PUBLIC
