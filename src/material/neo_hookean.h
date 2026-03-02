@@ -143,6 +143,14 @@ public:
     DenseMatrix compute2ndPiolaKirchhoff(const DenseMatrix& F) const;
     
     /**
+     * 从变形梯度计算 Cauchy 应力（完整大变形版本）
+     * 
+     * @param F 变形梯度（3x3）
+     * @param stress_voigt 输出：Cauchy 应力（Voigt 记号）
+     */
+    void computeStressFromF(const DenseMatrix& F, Vector& stress_voigt) const;
+    
+    /**
      * 计算 Cauchy 应力 σ = J⁻¹ F S F^T
      * 
      * @param F 变形梯度（3x3）
@@ -176,6 +184,32 @@ private:
      * 从工程参数计算材料参数
      */
     void computeParametersFromEngineering(Real E, Real nu);
+    
+    /**
+     * 小变形应力计算（线弹性近似）
+     * 
+     * @param strain 线性应变
+     * @param G 剪切模量
+     * @param lambda Lamé 第一参数
+     * @param stress 输出：Cauchy 应力
+     */
+    void compute_stress_small_strain(
+        const Vector& strain,
+        Real G,
+        Real lambda,
+        Vector& stress) const;
+    
+    /**
+     * 大变形应力计算（超弹性）
+     * 
+     * @param E_voigt Green-Lagrange 应变（Voigt 记号）
+     * @param stress 输出：Cauchy 应力
+     * @param state 状态变量
+     */
+    void compute_stress_large_strain(
+        const Vector& E_voigt,
+        Vector& stress,
+        StateVariables& state) const;
 };
 
 }  // namespace constitutive

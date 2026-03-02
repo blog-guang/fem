@@ -322,3 +322,195 @@ TEST(NeoHookeanTest, Jacobian_Scaled) {
     
     EXPECT_NEAR(J, 8.0, 1e-10);
 }
+
+// ═══════════════════════════════════════════════════════════
+// 大变形测试
+// ═══════════════════════════════════════════════════════════
+
+TEST(NeoHookeanTest, LargeDeformation_2ndPiolaKirchhoff) {
+    // 测试 2nd Piola-Kirchhoff 应力计算
+    
+    Real E = 10e6;
+    Real nu = 0.3;
+    
+    NeoHookean mat(E, nu, 3, true);
+    
+    // 单位变形梯度 F = I → S = 0（无应力）
+    DenseMatrix F_identity(3, 3);
+    F_identity.fill(0.0);
+    F_identity(0, 0) = 1.0;
+    F_identity(1, 1) = 1.0;
+    F_identity(2, 2) = 1.0;
+    
+    DenseMatrix S = mat.compute2ndPiolaKirchhoff(F_identity);
+    
+    // 单位变形时应力应该接近零
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            EXPECT_NEAR(S(i, j), 0.0, 1e-6);
+        }
+    }
+}
+
+TEST(NeoHookeanTest, LargeDeformation_UniformStretch) {
+    // 测试均匀拉伸
+    
+    Real E = 10e6;
+    Real nu = 0.3;
+    
+    NeoHookean mat(E, nu, 3, true);
+    
+    // 均匀拉伸 10%: F_ii = 1.1
+    DenseMatrix F(3, 3);
+    F.fill(0.0);
+    F(0, 0) = 1.1;
+    F(1, 1) = 1.1;
+    F(2, 2) = 1.1;
+    
+    DenseMatrix S = mat.compute2ndPiolaKirchhoff(F);
+    
+    // 均匀变形时，主应力应该相等
+    EXPECT_NEAR(S(0, 0), S(1, 1), 1e-6);
+    EXPECT_NEAR(S(1, 1), S(2, 2), 1e-6);
+    
+    // 剪切应力应该为零
+    EXPECT_NEAR(S(0, 1), 0.0, 1e-8);
+    EXPECT_NEAR(S(0, 2), 0.0, 1e-8);
+    EXPECT_NEAR(S(1, 2), 0.0, 1e-8);
+}
+
+TEST(NeoHookeanTest, LargeDeformation_Uniaxial) {
+    // 单轴拉伸测试
+    
+    Real E = 10e6;
+    Real nu = 0.49;  // 近不可压
+    
+    NeoHookean mat(E, nu, 3, true);
+    
+    // 单轴拉伸 20%: F_xx = 1.2
+    // 不可压条件：F_yy * F_zz ≈ 1/F_xx ≈ 0.833
+    Real lambda_x = 1.2;
+    Real lambda_yz = 1.0 / std::sqrt(lambda_x);  // ≈ 0.913
+    
+    DenseMatrix F(3, 3);
+    F.fill(0.0);
+    F(0, 0) = lambda_x;
+    F(1, 1) = lambda_yz;
+    F(2, 2) = lambda_yz;
+    
+    DenseMatrix S = mat.compute2ndPiolaKirchhoff(F);
+    
+    // 拉伸方向应力应该为正
+    EXPECT_GT(S(0, 0), 0.0);
+    
+    // 横向应力应该接近（考虑泊松效应）
+    EXPECT_NEAR(S(1, 1), S(2, 2), 1e-6);
+}
+
+TEST(NeoHookeanTest, LargeDeformation_CauchyStress) {
+    // 测试 Cauchy 应力计算
+    
+    Real E = 10e6;
+    Real nu = 0.3;
+    
+    NeoHookean mat(E, nu, 3, true);
+    
+    // 单位变形
+    DenseMatrix F(3, 3);
+    F.fill(0.0);
+    F(0, 0) = 1.0;
+    F(1, 1) = 1.0;
+    F(2, 2) = 1.0;
+    
+    Vector sigma_voigt;
+    mat.computeStressFromF(F, sigma_voigt);
+    
+    EXPECT_EQ(sigma_voigt.size(), 6);
+    
+    // 单位变形时 Cauchy 应力应该接近零
+    for (int i = 0; i < 6; i++) {
+        EXPECT_NEAR(sigma_voigt[i], 0.0, 1e-6);
+    }
+}
+
+TEST(NeoHookeanTest, LargeDeformation_StressVoigtConversion) {
+    // 测试应力张量到 Voigt 记号的转换
+    
+    Real E = 10e6;
+    Real nu = 0.3;
+    
+    NeoHookean mat(E, nu, 3, true);
+    
+    // 拉伸 15%
+    DenseMatrix F(3, 3);
+    F.fill(0.0);
+    F(0, 0) = 1.15;
+    F(1, 1) = 1.0;
+    F(2, 2) = 1.0;
+    
+    Vector sigma_voigt;
+    mat.computeStressFromF(F, sigma_voigt);
+    
+    // 拉伸方向应力为正
+    EXPECT_GT(sigma_voigt[0], 0.0);
+    
+    // 剪切应力应该为零（单轴变形）
+    EXPECT_NEAR(sigma_voigt[3], 0.0, 1e-6);  // σ_xy
+    EXPECT_NEAR(sigma_voigt[4], 0.0, 1e-6);  // σ_yz
+    EXPECT_NEAR(sigma_voigt[5], 0.0, 1e-6);  // σ_xz
+}
+
+// ═══════════════════════════════════════════════════════════
+// 小变形自动识别测试
+// ═══════════════════════════════════════════════════════════
+
+TEST(NeoHookeanTest, AutoDetect_SmallStrain) {
+    // 小应变应自动使用线弹性近似
+    
+    Real E = 10e6;
+    Real nu = 0.3;
+    
+    NeoHookean mat(E, nu, 3, true);
+    StateVariables state = mat.createState();
+    
+    // 小应变（0.5%）
+    Vector strain(6, 0.0);
+    strain[0] = 0.005;
+    
+    Vector stress;
+    mat.computeStress(strain, stress, state);
+    
+    // 应该使用线弹性近似
+    EXPECT_GT(stress[0], 0.0);
+    
+    // 验证线弹性关系（近似）
+    Real G = E / (2.0 * (1.0 + nu));
+    Real K = E / (3.0 * (1.0 - 2.0 * nu));
+    Real lambda = K - 2.0 * G / 3.0;
+    
+    Real expected_stress = lambda * strain[0] + 2.0 * G * strain[0];
+    EXPECT_NEAR(stress[0], expected_stress, 1e-3);
+}
+
+TEST(NeoHookeanTest, AutoDetect_LargeStrain) {
+    // 大应变应触发大变形公式（当前仍使用线弹性近似）
+    
+    Real E = 10e6;
+    Real nu = 0.3;
+    
+    NeoHookean mat(E, nu, 3, true);
+    StateVariables state = mat.createState();
+    
+    // 大应变（15%）
+    Vector strain(6, 0.0);
+    strain[0] = 0.15;
+    
+    Vector stress;
+    mat.computeStress(strain, stress, state);
+    
+    // 应该有应力响应
+    EXPECT_GT(stress[0], 0.0);
+    
+    // 注意：当前大变形分支仍使用线弹性近似
+    // 完整实现需要存储变形梯度 F
+}

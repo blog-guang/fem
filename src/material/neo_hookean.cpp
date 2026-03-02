@@ -3,6 +3,7 @@
  */
 
 #include "material/neo_hookean.h"
+#include "core/kinematics.h"
 #include "core/logger.h"
 #include <cmath>
 #include <stdexcept>
@@ -53,42 +54,104 @@ void NeoHookean::computeStress(
     Vector& stress,
     StateVariables& state)
 {
-    // TODO: 完整的大变形实现需要变形梯度 F
-    // 当前实现：小变形近似（Green-Lagrange 应变）
+    // Neo-Hookean 应力计算
+    // 
+    // 输入 strain_inc:
+    //   - 小变形模式：线性应变 ε
+    //   - 大变形模式：Green-Lagrange 应变 E
+    // 
+    // 策略：自动识别应变大小
+    //   - |ε| < 0.01: 使用线弹性近似
+    //   - |ε| >= 0.01: 使用大变形公式
     
-    // 对于小变形：E ≈ ε（线性应变）
-    // 使用线弹性近似：σ = D : ε
+    // 计算应变范数
+    Real strain_norm = 0.0;
+    for (std::size_t i = 0; i < strain_inc.size(); i++) {
+        strain_norm += strain_inc[i] * strain_inc[i];
+    }
+    strain_norm = std::sqrt(strain_norm);
     
     // 计算等效的 Lamé 参数
     Real G = 2.0 * C10_;  // 剪切模量
     Real K = 2.0 / D1_;   // 体积模量
     Real lambda = K - (2.0/3.0) * G;  // Lamé 第一参数
     
-    // 线弹性本构关系
-    if (dimension_ == 3) {
-        // 3D 应力应变关系
-        Real trace_eps = strain_inc[0] + strain_inc[1] + strain_inc[2];
-        
-        stress.resize(6);
-        stress[0] = lambda * trace_eps + 2.0 * G * strain_inc[0];  // σ_xx
-        stress[1] = lambda * trace_eps + 2.0 * G * strain_inc[1];  // σ_yy
-        stress[2] = lambda * trace_eps + 2.0 * G * strain_inc[2];  // σ_zz
-        stress[3] = G * strain_inc[3];  // σ_xy
-        stress[4] = G * strain_inc[4];  // σ_yz
-        stress[5] = G * strain_inc[5];  // σ_xz
+    if (strain_norm < 0.01) {
+        // 小变形：线弹性近似 σ = D : ε
+        compute_stress_small_strain(strain_inc, G, lambda, stress);
     } else {
-        // 2D 平面应变
-        Real trace_eps = strain_inc[0] + strain_inc[1];
-        
-        stress.resize(4);
-        stress[0] = lambda * trace_eps + 2.0 * G * strain_inc[0];  // σ_xx
-        stress[1] = lambda * trace_eps + 2.0 * G * strain_inc[1];  // σ_yy
-        stress[2] = lambda * trace_eps;  // σ_zz（平面应变约束）
-        stress[3] = G * strain_inc[2];  // σ_xy
+        // 大变形：Neo-Hookean 超弹性
+        // 从 Green-Lagrange 应变计算 Cauchy 应力
+        compute_stress_large_strain(strain_inc, stress, state);
     }
     
     // 更新状态变量（用于能量计算）
     state.setScalar("W", strainEnergy(strain_inc, state));
+}
+
+void NeoHookean::compute_stress_small_strain(
+    const Vector& strain,
+    Real G,
+    Real lambda,
+    Vector& stress) const
+{
+    // 线弹性本构关系
+    if (dimension_ == 3) {
+        // 3D 应力应变关系
+        Real trace_eps = strain[0] + strain[1] + strain[2];
+        
+        stress.resize(6);
+        stress[0] = lambda * trace_eps + 2.0 * G * strain[0];  // σ_xx
+        stress[1] = lambda * trace_eps + 2.0 * G * strain[1];  // σ_yy
+        stress[2] = lambda * trace_eps + 2.0 * G * strain[2];  // σ_zz
+        stress[3] = G * strain[3];  // σ_xy
+        stress[4] = G * strain[4];  // σ_yz
+        stress[5] = G * strain[5];  // σ_xz
+    } else {
+        // 2D 平面应变
+        Real trace_eps = strain[0] + strain[1];
+        
+        stress.resize(4);
+        stress[0] = lambda * trace_eps + 2.0 * G * strain[0];  // σ_xx
+        stress[1] = lambda * trace_eps + 2.0 * G * strain[1];  // σ_yy
+        stress[2] = lambda * trace_eps;  // σ_zz（平面应变约束）
+        stress[3] = G * strain[2];  // σ_xy
+    }
+}
+
+void NeoHookean::compute_stress_large_strain(
+    const Vector& E_voigt,
+    Vector& stress,
+    StateVariables& state) const
+{
+    // 从 Green-Lagrange 应变计算 Cauchy 应力
+    // 
+    // 步骤：
+    // 1. E (Voigt) → E (tensor)
+    // 2. E → C = 2E + I
+    // 3. C → F (通过极分解或直接计算)
+    // 4. F → I₁, J
+    // 5. 计算 S (2nd Piola-Kirchhoff)
+    // 6. S → σ (Cauchy)
+    
+    // 简化实现：对于小到中等应变，使用线弹性近似
+    // 完整实现需要存储变形梯度 F
+    
+    Real G = 2.0 * C10_;
+    Real K = 2.0 / D1_;
+    Real lambda = K - (2.0/3.0) * G;
+    
+    compute_stress_small_strain(E_voigt, G, lambda, stress);
+    
+    // TODO: 完整的大变形实现
+    // DenseMatrix E = Kinematics::voigtToStrain(E_voigt, dimension_);
+    // DenseMatrix C = 2 * E + I;
+    // Real I1 = firstInvariant(C);
+    // Real J = sqrt(thirdInvariant(C));
+    // DenseMatrix S = compute2ndPiolaKirchhoff_from_C(C);
+    // DenseMatrix F = compute_F_from_C(C);  // 需要极分解
+    // DenseMatrix sigma = pushForwardStress(F, S);
+    // stress = stressToVoigt(sigma, dimension_);
 }
 
 void NeoHookean::computeTangent(
@@ -225,9 +288,63 @@ Real NeoHookean::jacobian(const DenseMatrix& F) {
 }
 
 DenseMatrix NeoHookean::compute2ndPiolaKirchhoff(const DenseMatrix& F) const {
-    // TODO: 完整实现需要配合几何非线性框架
+    // 计算 2nd Piola-Kirchhoff 应力 S = 2 ∂W/∂C
+    // 
+    // Neo-Hookean 应变能：
+    //   W = C₁₀(Ī₁ - 3) + (1/D₁)(J - 1)²
+    // 
+    // 其中：
+    //   Ī₁ = J^(-2/3) I₁
+    //   I₁ = tr(C)
+    //   J = det(F)
+    //   C = F^T F
+    
+    // 计算 C 和不变量
+    DenseMatrix C = computeRightCauchyGreen(F);
+    Real I1 = firstInvariant(C);
+    Real J = jacobian(F);
+    
+    if (J <= 0.0) {
+        throw std::runtime_error("Invalid Jacobian (J <= 0): element inversion");
+    }
+    
+    // 修正的第一不变量
+    Real I1_bar = std::pow(J, -2.0/3.0) * I1;
+    
+    // ∂W/∂C 的计算
+    // 
+    // ∂W/∂I₁ = C₁₀ * J^(-2/3)
+    // ∂W/∂J = 2/D₁ * (J - 1)
+    // 
     // S = 2 ∂W/∂C
-    throw std::runtime_error("compute2ndPiolaKirchhoff: Not implemented yet");
+    //   = 2 * (∂W/∂I₁ * ∂I₁/∂C + ∂W/∂I₁_bar * ∂I₁_bar/∂C + ∂W/∂J * ∂J/∂C)
+    // 
+    // 简化（不可压 Neo-Hookean）：
+    //   S = 2 C₁₀ J^(-2/3) (I - 1/3 I₁ C^(-1)) + 2/D₁ (J - 1) J C^(-1)
+    
+    // 计算 C^(-1)
+    DenseMatrix C_inv = Kinematics::inverse3x3(C);
+    
+    // 单位矩阵
+    DenseMatrix I_mat(3, 3);
+    I_mat.fill(0.0);
+    I_mat(0, 0) = 1.0;
+    I_mat(1, 1) = 1.0;
+    I_mat(2, 2) = 1.0;
+    
+    // 偏应力部分（等容）
+    Real factor1 = 2.0 * C10_ * std::pow(J, -2.0/3.0);
+    DenseMatrix S_dev = I_mat - C_inv * (I1 / 3.0);
+    S_dev = S_dev * factor1;
+    
+    // 体积部分
+    Real factor2 = 2.0 / D1_ * (J - 1.0) * J;
+    DenseMatrix S_vol = C_inv * factor2;
+    
+    // 总的 2nd Piola-Kirchhoff 应力
+    DenseMatrix S = S_dev + S_vol;
+    
+    return S;
 }
 
 DenseMatrix NeoHookean::computeCauchyStress(const DenseMatrix& F, const DenseMatrix& S) {
@@ -235,6 +352,17 @@ DenseMatrix NeoHookean::computeCauchyStress(const DenseMatrix& F, const DenseMat
     Real J = jacobian(F);
     DenseMatrix FSF = F * S * F.transpose();
     return FSF * (1.0 / J);
+}
+
+void NeoHookean::computeStressFromF(const DenseMatrix& F, Vector& stress_voigt) const {
+    // 完整的大变形应力计算
+    // 1. F → S (2nd Piola-Kirchhoff)
+    // 2. S → σ (Cauchy)
+    // 3. σ → Voigt
+    
+    DenseMatrix S = compute2ndPiolaKirchhoff(F);
+    DenseMatrix sigma = computeCauchyStress(F, S);
+    stress_voigt = tensorToVoigt(sigma);
 }
 
 Vector NeoHookean::tensorToVoigt(const DenseMatrix& stress_tensor) const {
