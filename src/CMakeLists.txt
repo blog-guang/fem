@@ -17,6 +17,7 @@ add_library(fem STATIC
     material/orthotropic_elastic.cpp
     material/j2_plasticity.cpp
     material/j2_plasticity_kinematic.cpp
+    material/neo_hookean.cpp
     # Shape (形函数)
     shape/shape_function.cpp
     shape/shape_tri3.cpp

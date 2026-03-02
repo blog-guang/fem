@@ -3,6 +3,7 @@
 #include "material/orthotropic_elastic.h"
 #include "material/j2_plasticity.h"
 #include "material/j2_plasticity_kinematic.h"
+#include "material/neo_hookean.h"
 #include "core/logger.h"
 #include <sstream>
 
@@ -91,6 +92,24 @@ void MaterialFactory::initializeBuiltinTypes() {
         return std::make_shared<J2PlasticityKinematic>(
             E, nu, sigma_y, H_iso, H_kin, dim
         );
+    };
+    
+    // ── NeoHookean（超弹性）──
+    registry["NeoHookean"] = [](const Parameters& p) -> MaterialPtr {
+        int dim = static_cast<int>(getParam(p, "dimension", 3.0));
+        
+        // 支持两种参数输入方式
+        if (p.find("C10") != p.end() && p.find("D1") != p.end()) {
+            // 直接使用 C10, D1 参数
+            Real C10 = requireParam(p, "C10");
+            Real D1 = requireParam(p, "D1");
+            return std::make_shared<NeoHookean>(C10, D1, dim);
+        } else {
+            // 从工程参数 E, nu 转换
+            Real E = requireParam(p, "E");
+            Real nu = requireParam(p, "nu");
+            return std::make_shared<NeoHookean>(E, nu, dim, true);
+        }
     };
 }
 
