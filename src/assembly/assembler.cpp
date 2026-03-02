@@ -258,6 +258,56 @@ void Assembler::apply_dirichlet(const std::vector<DirichletBC>& bcs) {
     FEM_INFO("Applied " + std::to_string(bcs.size()) + " Dirichlet BCs");
 }
 
+void Assembler::apply_dirichlet_single(Index global_dof, Real value) {
+    if (!assembled_) {
+        throw std::runtime_error("Must call assemble() before apply_dirichlet_single()");
+    }
+    
+    if (global_dof >= n_dofs_) {
+        throw std::out_of_range("Global DOF out of range: " + std::to_string(global_dof));
+    }
+    
+    // 转换到 CSR 格式
+    SparseMatrixCSR K_csr = coo_to_csr(K_coo_);
+    
+    // 修改第 global_dof 行: K(i,i)=1, K(i,j≠i)=0
+    Index row_start = K_csr.row_ptr()[global_dof];
+    Index row_end = K_csr.row_ptr()[global_dof + 1];
+    
+    for (Index k = row_start; k < row_end; ++k) {
+        Index j = K_csr.col_indices()[k];
+        if (j == global_dof) {
+            K_csr.values()[k] = 1.0;
+        } else {
+            K_csr.values()[k] = 0.0;
+        }
+    }
+    
+    // 修改第 global_dof 列: K(j,i)=0 (对所有 j≠i)
+    for (Index row = 0; row < n_dofs_; ++row) {
+        if (row == global_dof) continue;
+        
+        Index start = K_csr.row_ptr()[row];
+        Index end = K_csr.row_ptr()[row + 1];
+        
+        for (Index k = start; k < end; ++k) {
+            if (K_csr.col_indices()[k] == global_dof) {
+                K_csr.values()[k] = 0.0;
+                break;
+            }
+        }
+    }
+    
+    // 设置右端项
+    F_[global_dof] = value;
+    
+    // 转换回 COO
+    K_coo_ = csr_to_coo(K_csr);
+    
+    // 标记为 Dirichlet DOF
+    is_dirichlet_dof_[global_dof] = true;
+}
+
 void Assembler::apply_neumann(const std::vector<NeumannBC>& bcs) {
     if (!assembled_) {
         throw std::runtime_error("Must call assemble() before apply_neumann()");

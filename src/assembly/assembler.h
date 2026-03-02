@@ -110,6 +110,14 @@ public:
      * @param bcs 边界条件列表
      */
     void apply_dirichlet(const std::vector<DirichletBC>& bcs);
+    
+    /**
+     * 应用单个 Dirichlet 边界条件（低级接口）
+     * 
+     * @param global_dof 全局自由度编号
+     * @param value 约束值
+     */
+    void apply_dirichlet_single(Index global_dof, Real value);
 
     /**
      * 应用 Neumann 边界条件
@@ -128,9 +136,14 @@ public:
     SparseMatrixCSR matrix() const;
 
     /**
-     * 获取装配后的载荷向量
+     * 获取装配后的载荷向量（只读）
      */
     const Vector& rhs() const { return F_; }
+    
+    /**
+     * 获取装配后的载荷向量（可修改）
+     */
+    Vector& rhs() { return F_; }
 
     /**
      * 清空矩阵和向量

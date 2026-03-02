@@ -31,6 +31,9 @@ add_library(fem STATIC
     mesh/mesh_generator.cpp
     # Assembly
     assembly/assembler.cpp
+    assembly/load_step.cpp
+    assembly/convergence_history.cpp
+    assembly/static_solver.cpp
     # Physics
     physics/physics_base.cpp
     physics/physics_factory.cpp

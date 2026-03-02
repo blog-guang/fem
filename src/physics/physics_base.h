@@ -33,6 +33,17 @@ namespace physics {
 class PhysicsBase {
 public:
     virtual ~PhysicsBase() = default;
+    
+    /**
+     * 计算单元刚度矩阵和载荷向量（纯虚函数）
+     * 
+     * @param elem_id 单元ID
+     * @param mesh 网格引用
+     * @param Ke 输出：单元刚度矩阵
+     * @param Fe 输出：单元载荷向量
+     */
+    virtual void compute_element(Index elem_id, const Mesh& mesh,
+                                DenseMatrix& Ke, Vector& Fe) const = 0;
 
 protected:
     // ═══ 通用工具函数 ═══
