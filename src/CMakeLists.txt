@@ -41,6 +41,7 @@ add_library(fem STATIC
     physics/physics_factory.cpp
     physics/heat_unified.cpp
     physics/elasticity_unified.cpp
+    physics/elasticity_nonlinear.cpp
     # Data (场数据管理)
     data/base_data.cpp
     # PostProcess (后处理)
