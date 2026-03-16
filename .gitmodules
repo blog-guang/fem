@@ -4,3 +4,6 @@
 [submodule "third_party/amgcl"]
 	path = third_party/amgcl
 	url = https://github.com/ddemidov/amgcl.git
+[submodule "third_party/libmesh"]
+	path = third_party/libmesh
+	url = https://github.com/libMesh/libmesh.git
