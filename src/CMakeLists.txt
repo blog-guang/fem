@@ -56,7 +56,8 @@ add_library(fem STATIC
     math/pcg.cpp
     math/bicgstab.cpp
     math/newton_raphson.cpp
-    # Solver - Nonlinear Solvers (TODO: 完善后取消注释)
+    # Solver - Nonlinear Solvers
+    solver/nonlinear_solver.cpp
     # solver/newton_raphson_solver.cpp
 )
 
