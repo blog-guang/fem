@@ -4,7 +4,7 @@
  * 展示:
  * 1. DofHandler DOF 编号
  * 2. SparseMatrixPattern 预分配
- * 3. 基于 Pattern 的矩阵初始化
+ * 3. Node/Element DOF 映射
  */
 
 #include "mesh/model.h"
@@ -35,7 +35,7 @@ int main() {
     DofHandler dof_handler(model);
     
     // 3.1 设置有限元空间 (3D 位移场)
-    FiniteElementSpace fe_space(FieldType::Vector3D, 1, 3);
+    FiniteElementSpace fe_space(FieldType::Vector3D, 1);
     dof_handler.distribute_dofs(fe_space);
     
     FEM_INFO("DOFs: " + std::to_string(dof_handler.n_dofs()) + 
@@ -53,33 +53,17 @@ int main() {
     
     K.print("Stiffness Matrix");
     
-    // 6. 添加 Dirichlet 边界条件
-    FEM_INFO("\nAdding Dirichlet BCs...");
-    // 固定左边界 (x≈0) 的所有节点
-    for (Index node_id = 0; node_id < mesh.num_nodes(); node_id++) {
-        const auto& node = mesh.node(node_id);
-        auto coords = node.coords();
-        if (std::abs(coords[0]) < 1e-6) {  // x 坐标
-            // 固定 u, v, w
-            dof_handler.add_dirichlet_bc(node_id, 0, 0.0);  // u = 0
-            dof_handler.add_dirichlet_bc(node_id, 1, 0.0);  // v = 0
-            dof_handler.add_dirichlet_bc(node_id, 2, 0.0);  // w = 0
-        }
-    }
-    
-    FEM_INFO("Dirichlet DOFs: " + std::to_string(dof_handler.dirichlet_dofs().size()));
-    
-    // 7. 演示节点 DOF 映射
+    // 6. 演示节点 DOF 映射
     FEM_INFO("\nNode DOF mapping example:");
     if (mesh.num_nodes() > 0) {
-        auto dofs = dof_handler.node_dofs(0);
-        FEM_INFO("  Node 0 DOFs: ");
-        for (size_t i = 0; i < dofs.size(); i++) {
-            std::cout << "    component " << i << " -> global DOF " << dofs[i] << std::endl;
+        std::cout << "  Node 0 DOFs: " << std::endl;
+        for (int comp = 0; comp < dof_handler.dofs_per_node(); comp++) {
+            Index dof = dof_handler.node_dof(0, comp);
+            std::cout << "    component " << comp << " -> global DOF " << dof << std::endl;
         }
     }
     
-    // 8. 演示单元 DOF 映射
+    // 7. 演示单元 DOF 映射
     FEM_INFO("\nElement DOF mapping example:");
     if (mesh.num_elements() > 0) {
         auto dofs = dof_handler.element_dofs(0);
@@ -90,6 +74,16 @@ int main() {
         if (dofs.size() > 5) {
             std::cout << "    ... and " << (dofs.size() - 5) << " more" << std::endl;
         }
+    }
+    
+    // 8. 演示高性能内联 DOF 查询
+    FEM_INFO("\nInline DOF query demo:");
+    Index node_id = 5;
+    if (node_id < mesh.num_nodes()) {
+        std::cout << "  Node " << node_id << " DOFs:" << std::endl;
+        std::cout << "    u (x): " << dof_handler.node_dof(node_id, 0) << std::endl;
+        std::cout << "    v (y): " << dof_handler.node_dof(node_id, 1) << std::endl;
+        std::cout << "    w (z): " << dof_handler.node_dof(node_id, 2) << std::endl;
     }
     
     FEM_INFO("\n=== Demo Complete ===");

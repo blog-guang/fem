@@ -28,6 +28,9 @@ add_fem_example(cantilever_beam)
 # DOF 管理器演示
 add_fem_example(dof_handler_demo)
 
+# DOF 管理器 benchmark (重构对比)
+add_fem_example(dof_handler_benchmark)
+
 # ══════════════════════════════════════════════════════════════════
 # 多物理场耦合
 # ══════════════════════════════════════════════════════════════════
