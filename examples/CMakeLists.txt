@@ -25,6 +25,9 @@ add_fem_example(elasticity_2d)
 # 悬臂梁（Neumann BC 演示）
 add_fem_example(cantilever_beam)
 
+# DOF 管理器演示
+add_fem_example(dof_handler_demo)
+
 # ══════════════════════════════════════════════════════════════════
 # 多物理场耦合
 # ══════════════════════════════════════════════════════════════════
