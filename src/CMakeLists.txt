@@ -29,6 +29,7 @@ add_library(fem STATIC
     # Mesh (新架构)
     mesh/material.cpp
     mesh/mesh.cpp
+    mesh/dof_handler.cpp
     mesh/model.cpp
     mesh/mesh_generator.cpp
     # Assembly

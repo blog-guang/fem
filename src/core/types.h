@@ -38,9 +38,13 @@ enum class ElementType : uint8_t {
 };
 
 enum class FieldType : uint8_t {
-    Scalar,          // 标量场
-    Vector2D,        // 2D 矢量场
-    Vector3D         // 3D 矢量场
+    Scalar,          // 标量场 (温度, 压力)
+    Vector2D,        // 2D 矢量场 (位移 u,v)
+    Vector3D,        // 3D 矢量场 (位移 u,v,w)
+    // 方便使用的别名
+    DISPLACEMENT = Vector3D,
+    PRESSURE = Scalar,
+    TEMPERATURE = Scalar
 };
 
 enum class BCType : uint8_t {

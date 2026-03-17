@@ -4,6 +4,7 @@
 #include "core/types.h"
 #include <vector>
 #include <tuple>
+#include <iostream>
 
 namespace fem {
 
@@ -173,5 +174,63 @@ SparseMatrixCSC coo_to_csc(const SparseMatrixCOO& coo);
 SparseMatrixCSR csc_to_csr(const SparseMatrixCSC& csc);
 SparseMatrixCSC csr_to_csc(const SparseMatrixCSR& csr);
 SparseMatrixCOO csr_to_coo(const SparseMatrixCSR& csr);
+
+/**
+ * SparseMatrixPattern: 稀疏矩阵模式（只包含非零元位置，不包含值）
+ * 
+ * 用于预分配内存，支持高效初始化
+ */
+class SparseMatrixPattern {
+public:
+    // ═══ 构造 ═══
+    SparseMatrixPattern() : rows_(0), cols_(0) {}
+    SparseMatrixPattern(std::size_t rows, std::size_t cols)
+        : rows_(rows), cols_(cols) {}
+    SparseMatrixPattern(std::size_t rows, std::size_t cols,
+                       std::vector<size_t>&& row_ptr,
+                       std::vector<Index>&& col_indices)
+        : rows_(rows), cols_(cols),
+          row_ptr_(std::move(row_ptr)),
+          col_indices_(std::move(col_indices)) {}
+    
+    // ═══ 大小 ═══
+    std::size_t rows() const { return rows_; }
+    std::size_t cols() const { return cols_; }
+    std::size_t nnz() const { return col_indices_.size(); }
+    
+    // ═══ 访问数据 ═══
+    const std::vector<size_t>& row_ptr() const { return row_ptr_; }
+    const std::vector<Index>& col_indices() const { return col_indices_; }
+    
+    // ═══ 获取行非零元范围 ═══
+    // 返回第 row 行的非零元在 col_indices 中的索引范围 [start, end)
+    std::pair<size_t, size_t> row_range(size_t row) const {
+        if (row >= rows_) return {0, 0};
+        return {row_ptr_[row], row_ptr_[row + 1]};
+    }
+    
+    // ═══ 创建基于此模式的矩阵 ═══
+    SparseMatrixCSR create_matrix() const {
+        SparseMatrixCSR mat(rows_, cols_);
+        mat.set_data(rows_, cols_, 
+                    std::vector<size_t>(row_ptr_),
+                    std::vector<Index>(col_indices_),
+                    std::vector<Real>(nnz(), 0.0));
+        return mat;
+    }
+    
+    // ═══ 打印信息 ═══
+    void print_info() const {
+        // 不在头文件中使用 FEM_INFO 宏，避免编译顺序问题
+        std::cout << "SparseMatrixPattern: " << rows_ << "x" << cols_ 
+                  << ", nnz=" << nnz() << std::endl;
+    }
+    
+private:
+    std::size_t rows_;
+    std::size_t cols_;
+    std::vector<size_t> row_ptr_;     // 长度 rows+1
+    std::vector<Index> col_indices_;  // 长度 nnz
+};
 
 }  // namespace fem
